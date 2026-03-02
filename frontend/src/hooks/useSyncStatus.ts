@@ -1,26 +1,18 @@
 import { useEffect, useState } from 'react';
-import type { SyncState } from '../db/sync';
-import { getSyncState, onSyncStateChange } from '../db/sync';
 
 export function useSyncStatus() {
-  const [state, setState] = useState<SyncState>(getSyncState());
   const [isOnline, setIsOnline] = useState(navigator.onLine);
 
   useEffect(() => {
-    const unsubscribe = onSyncStateChange(setState);
-    return unsubscribe;
-  }, []);
-
-  useEffect(() => {
-    const handleOnline = () => setIsOnline(true);
-    const handleOffline = () => setIsOnline(false);
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
+    const on = () => setIsOnline(true);
+    const off = () => setIsOnline(false);
+    window.addEventListener('online', on);
+    window.addEventListener('offline', off);
     return () => {
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
+      window.removeEventListener('online', on);
+      window.removeEventListener('offline', off);
     };
   }, []);
 
-  return { ...state, isOnline };
+  return { isOnline, status: isOnline ? 'online' : 'offline', lastSync: null, error: null };
 }

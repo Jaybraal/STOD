@@ -1,5 +1,6 @@
-import { useEffect, useState, useCallback } from 'react';
-import { db } from '../db';
+import { useEffect, useState } from 'react';
+import { collection, query, where, onSnapshot } from 'firebase/firestore';
+import { db } from '../db/firebase';
 import type { Patient } from '../db/schemas';
 import * as q from '../db/queries/patients';
 
@@ -7,47 +8,34 @@ export function usePatients() {
   const [patients, setPatients] = useState<Patient[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const fetch = useCallback(async () => {
-    setLoading(true);
-    try {
-      setPatients(await q.getAllPatients());
-    } finally {
+  useEffect(() => {
+    const fsQuery = query(collection(db, 'patients'), where('deletedAt', '==', null));
+    const unsub = onSnapshot(fsQuery, (snap) => {
+      const docs = snap.docs.map(d => ({ _id: d.id, ...d.data() }) as Patient);
+      setPatients(docs.sort((a, b) => a.name.localeCompare(b.name, 'es')));
       setLoading(false);
-    }
+    });
+    return unsub;
   }, []);
 
-  useEffect(() => {
-    fetch();
-    const changes = db.changes({ live: true, since: 'now', selector: { type: 'patient' } });
-    changes.on('change', fetch);
-    return () => changes.cancel();
-  }, [fetch]);
-
-  return { patients, loading, refetch: fetch };
+  return { patients, loading };
 }
 
 export function usePatient(id: string | undefined) {
   const [patient, setPatient] = useState<Patient | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const fetch = useCallback(async () => {
-    if (!id) { setPatient(null); setLoading(false); return; }
-    setLoading(true);
-    try {
-      setPatient(await q.getPatient(id));
-    } catch {
-      setPatient(null);
-    } finally {
-      setLoading(false);
-    }
-  }, [id]);
-
   useEffect(() => {
-    fetch();
-    const changes = db.changes({ live: true, since: 'now', doc_ids: id ? [id] : [] });
-    changes.on('change', fetch);
-    return () => changes.cancel();
-  }, [id, fetch]);
+    if (!id) { setPatient(null); setLoading(false); return; }
+    return onSnapshot(
+      query(collection(db, 'patients'), where('__name__', '==', id)),
+      (snap) => {
+        const d = snap.docs[0];
+        setPatient(d ? ({ _id: d.id, ...d.data() } as Patient) : null);
+        setLoading(false);
+      }
+    );
+  }, [id]);
 
   return { patient, loading };
 }

@@ -1,76 +1,48 @@
-import { db, generateId, now } from '../index';
+import { collection, doc, setDoc, getDoc, updateDoc, query, where, getDocs } from 'firebase/firestore';
+import { db } from '../firebase';
+import { generateId, now } from '../index';
 import type { Appointment, AppointmentStatus } from '../schemas';
 
-export async function getAppointmentsForDate(date: string): Promise<Appointment[]> {
-  const result = await db.find({
-    selector: { type: 'appointment', date, deletedAt: { $exists: false } },
-  });
-  const appointments = result.docs as unknown as Appointment[];
-  return appointments.sort((a, b) => a.time.localeCompare(b.time));
-}
+const COL = 'appointments';
 
-export async function getAppointmentsForPatient(patientId: string): Promise<Appointment[]> {
-  const result = await db.find({
-    selector: { type: 'appointment', patientId, deletedAt: { $exists: false } },
-  });
-  const appointments = result.docs as unknown as Appointment[];
-  return appointments.sort((a, b) => {
-    const dateA = `${a.date} ${a.time}`;
-    const dateB = `${b.date} ${b.time}`;
-    return dateB.localeCompare(dateA); // más reciente primero
-  });
+export async function getAppointment(id: string): Promise<Appointment> {
+  const snap = await getDoc(doc(db, COL, id));
+  if (!snap.exists()) throw new Error('Cita no encontrada');
+  return { _id: snap.id, ...snap.data() } as Appointment;
 }
 
 export async function getAppointmentsInRange(startDate: string, endDate: string): Promise<Appointment[]> {
-  const result = await db.find({
-    selector: {
-      type: 'appointment',
-      date: { $gte: startDate, $lte: endDate },
-      deletedAt: { $exists: false },
-    },
-  });
-  return result.docs as unknown as Appointment[];
-}
-
-export async function getAllAppointments(): Promise<Appointment[]> {
-  const result = await db.find({
-    selector: { type: 'appointment', deletedAt: { $exists: false } },
-  });
-  return result.docs as unknown as Appointment[];
-}
-
-export async function getAppointment(id: string): Promise<Appointment> {
-  return db.get(id) as unknown as Appointment;
+  const q = query(
+    collection(db, COL),
+    where('date', '>=', startDate),
+    where('date', '<=', endDate)
+  );
+  const snap = await getDocs(q);
+  return snap.docs
+    .map(d => ({ _id: d.id, ...d.data() }) as Appointment)
+    .filter(a => a.deletedAt === null);
 }
 
 export async function createAppointment(
-  data: Omit<Appointment, '_id' | '_rev' | 'type' | 'createdAt' | 'updatedAt'>
+  data: Omit<Appointment, '_id' | 'createdAt' | 'updatedAt' | 'deletedAt'>
 ): Promise<Appointment> {
   const timestamp = now();
-  const doc: Appointment = {
-    _id: generateId('appointment'),
-    type: 'appointment',
-    createdAt: timestamp,
-    updatedAt: timestamp,
-    ...data,
-  };
-  await db.put(doc);
-  return doc;
+  const id = generateId('appointment');
+  const docData = { createdAt: timestamp, updatedAt: timestamp, deletedAt: null, ...data };
+  await setDoc(doc(db, COL, id), docData);
+  return { _id: id, ...docData };
 }
 
-export async function updateAppointment(id: string, data: Partial<Appointment>): Promise<Appointment> {
-  const existing = await db.get(id) as unknown as Appointment;
-  const updated: Appointment = { ...existing, ...data, updatedAt: now() };
-  await db.put(updated);
-  return updated;
+export async function updateAppointment(id: string, data: Partial<Appointment>): Promise<void> {
+  const { _id: _, ...updates } = { ...data, updatedAt: now() };
+  void _;
+  await updateDoc(doc(db, COL, id), updates as Record<string, unknown>);
 }
 
 export async function updateAppointmentStatus(id: string, status: AppointmentStatus): Promise<void> {
-  const doc = await db.get(id) as unknown as Appointment;
-  await db.put({ ...doc, status, updatedAt: now() });
+  await updateDoc(doc(db, COL, id), { status, updatedAt: now() });
 }
 
 export async function deleteAppointment(id: string): Promise<void> {
-  const doc = await db.get(id) as unknown as Appointment;
-  await db.put({ ...doc, deletedAt: now(), updatedAt: now() });
+  await updateDoc(doc(db, COL, id), { deletedAt: now(), updatedAt: now() });
 }

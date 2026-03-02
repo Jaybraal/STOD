@@ -1,26 +1,16 @@
 import { useState, useEffect } from 'react';
-import { useConfig, updateConfig, saveSyncCredentials } from '../../hooks/useConfig';
-import { startSync, stopSync } from '../../db/sync';
+import { useConfig, updateConfig } from '../../hooks/useConfig';
 import { Header } from '../../components/layout/Header';
 import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
-import { SyncStatusBar } from '../../components/SyncStatusBar';
 import { LoadingPage } from '../../components/ui/Spinner';
-import { API_URL } from '../../utils/constants';
-import { Save, RefreshCw, Link2, Copy, Check, WifiOff } from 'lucide-react';
+import { Save, Check, Wifi } from 'lucide-react';
 
 export function ConfiguracionPage() {
   const { config, loading } = useConfig();
   const [form, setForm] = useState({ clinicName: '', doctorName: '', phone: '', address: '' });
   const [saved, setSaved] = useState(false);
-
-  // Sync state
-  const [generating, setGenerating] = useState(false);
-  const [connecting, setConnecting] = useState(false);
-  const [syncCodeInput, setSyncCodeInput] = useState('');
-  const [syncError, setSyncError] = useState('');
-  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     if (config) {
@@ -30,10 +20,6 @@ export function ConfiguracionPage() {
         phone: config.phone,
         address: config.address,
       });
-      // Si hay credenciales guardadas, iniciar sync
-      if (config.syncUrl && config.syncUsername && config.syncPassword) {
-        startSync(config.syncUrl, config.syncUsername, config.syncPassword);
-      }
     }
   }, [config]);
 
@@ -42,58 +28,6 @@ export function ConfiguracionPage() {
     await updateConfig(form);
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
-  };
-
-  const handleGenerateCode = async () => {
-    setGenerating(true);
-    setSyncError('');
-    try {
-      const res = await fetch(`${API_URL}/api/sync/generate`, { method: 'POST' });
-      if (!res.ok) throw new Error('Error generando código');
-      const data = await res.json();
-      await saveSyncCredentials(data.code, data.syncUrl, data.username, data.password);
-      startSync(data.syncUrl, data.username, data.password);
-    } catch (err) {
-      setSyncError('No se pudo generar el código. Verifica tu conexión.');
-    } finally {
-      setGenerating(false);
-    }
-  };
-
-  const handleConnect = async () => {
-    if (!syncCodeInput.trim()) return;
-    setConnecting(true);
-    setSyncError('');
-    try {
-      const res = await fetch(`${API_URL}/api/sync/connect`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: syncCodeInput.trim().toUpperCase() }),
-      });
-      if (!res.ok) throw new Error('Código no encontrado');
-      const data = await res.json();
-      await saveSyncCredentials(data.code, data.syncUrl, data.username, data.password);
-      startSync(data.syncUrl, data.username, data.password);
-      setSyncCodeInput('');
-    } catch (err) {
-      setSyncError('Código inválido o expirado. Verifica e intenta de nuevo.');
-    } finally {
-      setConnecting(false);
-    }
-  };
-
-  const handleDisconnect = async () => {
-    if (!confirm('¿Desconectar la sincronización? Los datos no se eliminarán.')) return;
-    stopSync();
-    await updateConfig({ syncCode: null, syncUrl: null, syncUsername: null, syncPassword: null });
-  };
-
-  const handleCopy = () => {
-    if (config?.syncCode) {
-      navigator.clipboard.writeText(config.syncCode);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    }
   };
 
   if (loading) return <LoadingPage />;
@@ -141,98 +75,19 @@ export function ConfiguracionPage() {
 
         {/* Sincronización */}
         <Card className="p-5">
-          <div className="flex items-center justify-between mb-1">
-            <h2 className="font-semibold text-slate-900">Sincronización entre dispositivos</h2>
-            <SyncStatusBar />
+          <div className="flex items-center gap-2 mb-2">
+            <Wifi size={18} className="text-sky-500" />
+            <h2 className="font-semibold text-slate-900">Sincronización automática</h2>
           </div>
-          <p className="text-sm text-slate-500 mb-5">
-            Conecta dos dispositivos para compartir todos los datos en tiempo real.
-            Funciona con internet; sin conexión los datos se guardan localmente.
+          <p className="text-sm text-slate-500">
+            Los datos se sincronizan automáticamente entre todos los dispositivos
+            en tiempo real gracias a Firebase. No se requiere ninguna configuración adicional.
           </p>
-
-          {syncError && (
-            <div className="flex items-center gap-2 p-3 bg-red-50 text-red-700 rounded-lg text-sm mb-4">
-              <WifiOff size={16} />
-              {syncError}
-            </div>
-          )}
-
-          {config?.syncCode ? (
-            /* Ya tiene código */
-            <div className="space-y-4">
-              <div>
-                <p className="text-xs font-semibold text-slate-400 uppercase mb-2">Tu código de conexión</p>
-                <div className="flex items-center gap-3 p-4 bg-sky-50 rounded-xl border-2 border-sky-200">
-                  <span className="font-mono text-2xl font-bold text-sky-700 tracking-widest flex-1">
-                    {config.syncCode}
-                  </span>
-                  <button
-                    onClick={handleCopy}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium bg-white border border-sky-300 text-sky-700 hover:bg-sky-50 transition"
-                  >
-                    {copied ? <><Check size={14} /> Copiado</> : <><Copy size={14} /> Copiar</>}
-                  </button>
-                </div>
-                <p className="text-xs text-slate-500 mt-2">
-                  Ingresa este código en el otro dispositivo para sincronizar.
-                </p>
-              </div>
-
-              <Button variant="secondary" size="sm" onClick={handleDisconnect}>
-                Desconectar sincronización
-              </Button>
-            </div>
-          ) : (
-            /* Sin código */
-            <div className="space-y-5">
-              {/* Generar código */}
-              <div>
-                <p className="text-sm font-medium text-slate-700 mb-2">
-                  Este es el dispositivo principal
-                </p>
-                <p className="text-xs text-slate-500 mb-3">
-                  Genera un código en este dispositivo y luego ingrésalo en el otro.
-                </p>
-                <Button onClick={handleGenerateCode} disabled={generating}>
-                  <RefreshCw size={16} className={generating ? 'animate-spin' : ''} />
-                  {generating ? 'Generando...' : 'Generar código de conexión'}
-                </Button>
-              </div>
-
-              <div className="relative flex items-center gap-3">
-                <div className="flex-1 border-t border-slate-200" />
-                <span className="text-xs text-slate-400 font-medium">O</span>
-                <div className="flex-1 border-t border-slate-200" />
-              </div>
-
-              {/* Ingresar código */}
-              <div>
-                <p className="text-sm font-medium text-slate-700 mb-2">
-                  Este es el segundo dispositivo
-                </p>
-                <p className="text-xs text-slate-500 mb-3">
-                  Ingresa el código generado en el dispositivo principal.
-                </p>
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={syncCodeInput}
-                    onChange={(e) => setSyncCodeInput(e.target.value.toUpperCase())}
-                    placeholder="XXXX-XXXX"
-                    maxLength={9}
-                    className="flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm font-mono uppercase tracking-widest focus:outline-none focus:ring-2 focus:ring-sky-500"
-                  />
-                  <Button
-                    onClick={handleConnect}
-                    disabled={connecting || syncCodeInput.length < 4}
-                  >
-                    <Link2 size={16} />
-                    {connecting ? 'Conectando...' : 'Conectar'}
-                  </Button>
-                </div>
-              </div>
-            </div>
-          )}
+          <p className="text-xs text-slate-400 mt-2">
+            Mientras haya internet, los cambios en cualquier dispositivo se reflejan
+            en todos los demás al instante. Sin conexión, los datos se guardan localmente
+            y se sincronizan al recuperar la conexión.
+          </p>
         </Card>
 
         {/* Info versión */}

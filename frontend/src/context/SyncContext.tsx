@@ -1,44 +1,27 @@
-import { createContext, useContext, useEffect, type ReactNode } from 'react';
-import { startSync, stopSync } from '../db/sync';
-import { useSyncStatus } from '../hooks/useSyncStatus';
-import { useConfig } from '../hooks/useConfig';
+import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 
 interface SyncContextValue {
   isOnline: boolean;
-  status: string;
-  lastSync: Date | null;
-  error: string | null;
 }
 
-const SyncContext = createContext<SyncContextValue>({
-  isOnline: true,
-  status: 'disconnected',
-  lastSync: null,
-  error: null,
-});
+const SyncContext = createContext<SyncContextValue>({ isOnline: true });
 
 export function SyncProvider({ children }: { children: ReactNode }) {
-  const { config } = useConfig();
-  const syncState = useSyncStatus();
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
 
-  // Iniciar sync automáticamente si hay credenciales guardadas
   useEffect(() => {
-    if (config?.syncUrl && config?.syncUsername && config?.syncPassword) {
-      startSync(config.syncUrl, config.syncUsername, config.syncPassword);
-    } else {
-      stopSync();
-    }
-  }, [config?.syncUrl, config?.syncUsername, config?.syncPassword]);
+    const on = () => setIsOnline(true);
+    const off = () => setIsOnline(false);
+    window.addEventListener('online', on);
+    window.addEventListener('offline', off);
+    return () => {
+      window.removeEventListener('online', on);
+      window.removeEventListener('offline', off);
+    };
+  }, []);
 
   return (
-    <SyncContext.Provider
-      value={{
-        isOnline: syncState.isOnline,
-        status: syncState.status,
-        lastSync: syncState.lastSync,
-        error: syncState.error,
-      }}
-    >
+    <SyncContext.Provider value={{ isOnline }}>
       {children}
     </SyncContext.Provider>
   );

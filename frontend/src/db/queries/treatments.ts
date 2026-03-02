@@ -1,59 +1,41 @@
-import { db, generateId, now } from '../index';
+import { doc, setDoc, getDoc, updateDoc } from 'firebase/firestore';
+import { db } from '../firebase';
+import { generateId, now } from '../index';
 import type { Treatment, TreatmentStatus } from '../schemas';
 
-export async function getTreatmentsForPatient(patientId: string): Promise<Treatment[]> {
-  const result = await db.find({
-    selector: { type: 'treatment', patientId, deletedAt: { $exists: false } },
-  });
-  const treatments = result.docs as unknown as Treatment[];
-  return treatments.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-}
-
-export async function getAllTreatments(): Promise<Treatment[]> {
-  const result = await db.find({
-    selector: { type: 'treatment', deletedAt: { $exists: false } },
-  });
-  return result.docs as unknown as Treatment[];
-}
+const COL = 'treatments';
 
 export async function getTreatment(id: string): Promise<Treatment> {
-  return db.get(id) as unknown as Treatment;
+  const snap = await getDoc(doc(db, COL, id));
+  if (!snap.exists()) throw new Error('Tratamiento no encontrado');
+  return { _id: snap.id, ...snap.data() } as Treatment;
 }
 
 export async function createTreatment(
-  data: Omit<Treatment, '_id' | '_rev' | 'type' | 'createdAt' | 'updatedAt'>
+  data: Omit<Treatment, '_id' | 'createdAt' | 'updatedAt' | 'deletedAt'>
 ): Promise<Treatment> {
   const timestamp = now();
-  const doc: Treatment = {
-    _id: generateId('treatment'),
-    type: 'treatment',
-    createdAt: timestamp,
-    updatedAt: timestamp,
-    ...data,
-  };
-  await db.put(doc);
-  return doc;
+  const id = generateId('treatment');
+  const docData = { createdAt: timestamp, updatedAt: timestamp, deletedAt: null, ...data };
+  await setDoc(doc(db, COL, id), docData);
+  return { _id: id, ...docData };
 }
 
-export async function updateTreatment(id: string, data: Partial<Treatment>): Promise<Treatment> {
-  const existing = await db.get(id) as unknown as Treatment;
-  const updated: Treatment = { ...existing, ...data, updatedAt: now() };
-  await db.put(updated);
-  return updated;
+export async function updateTreatment(id: string, data: Partial<Treatment>): Promise<void> {
+  const { _id: _, ...updates } = { ...data, updatedAt: now() };
+  void _;
+  await updateDoc(doc(db, COL, id), updates as Record<string, unknown>);
 }
 
 export async function updateTreatmentStatus(id: string, status: TreatmentStatus): Promise<void> {
-  const doc = await db.get(id) as unknown as Treatment;
-  await db.put({ ...doc, status, updatedAt: now() });
+  await updateDoc(doc(db, COL, id), { status, updatedAt: now() });
 }
 
 export async function deleteTreatment(id: string): Promise<void> {
-  const doc = await db.get(id) as unknown as Treatment;
-  await db.put({ ...doc, deletedAt: now(), updatedAt: now() });
+  await updateDoc(doc(db, COL, id), { deletedAt: now(), updatedAt: now() });
 }
 
-export async function getTreatmentCostSummary(patientId: string): Promise<{ total: number; completado: number; pendiente: number }> {
-  const treatments = await getTreatmentsForPatient(patientId);
+export function getTreatmentCostSummary(treatments: Treatment[]): { total: number; completado: number; pendiente: number } {
   const total = treatments.reduce((sum, t) => sum + (t.cost || 0), 0);
   const completado = treatments
     .filter((t) => t.status === 'completado')

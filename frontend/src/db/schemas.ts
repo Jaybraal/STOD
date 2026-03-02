@@ -1,16 +1,13 @@
-// Base document que todos los docs de PouchDB comparten
+// Base document
 export interface BaseDoc {
   _id: string;
-  _rev?: string;
-  type: 'patient' | 'appointment' | 'treatment' | 'prescription' | 'config';
   createdAt: string; // ISO 8601
   updatedAt: string; // ISO 8601
-  deletedAt?: string; // soft delete
+  deletedAt: string | null; // null = activo, string ISO = eliminado (soft delete)
 }
 
 // Paciente
 export interface Patient extends BaseDoc {
-  type: 'patient';
   name: string;
   dob: string; // YYYY-MM-DD
   phone: string;
@@ -26,7 +23,6 @@ export type AppointmentStatus = 'programada' | 'completada' | 'cancelada' | 'no_
 
 // Cita
 export interface Appointment extends BaseDoc {
-  type: 'appointment';
   patientId: string;
   date: string;     // YYYY-MM-DD
   time: string;     // HH:mm
@@ -41,7 +37,6 @@ export type TreatmentStatus = 'planificado' | 'en_proceso' | 'completado';
 
 // Tratamiento
 export interface Treatment extends BaseDoc {
-  type: 'treatment';
   patientId: string;
   tooth: string;        // Notación FDI: "1.1", "2.8", etc.
   procedure: string;
@@ -64,7 +59,6 @@ export interface Medication {
 
 // Receta
 export interface Prescription extends BaseDoc {
-  type: 'prescription';
   patientId: string;
   appointmentId: string;
   date: string; // YYYY-MM-DD
@@ -73,19 +67,9 @@ export interface Prescription extends BaseDoc {
 }
 
 // Configuración de la clínica
-export interface ClinicConfig extends BaseDoc {
-  type: 'config';
-  _id: 'config_clinic';
+export interface ClinicConfig {
   clinicName: string;
   doctorName: string;
   phone: string;
   address: string;
-  // Sync
-  syncCode: string | null;
-  syncUrl: string | null;
-  syncUsername: string | null;
-  syncPassword: string | null;
 }
-
-// Tipos de cualquier documento
-export type AnyDoc = Patient | Appointment | Treatment | Prescription | ClinicConfig;

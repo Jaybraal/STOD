@@ -1,5 +1,6 @@
-import { useEffect, useState, useCallback } from 'react';
-import { db } from '../db';
+import { useEffect, useState } from 'react';
+import { collection, query, where, onSnapshot } from 'firebase/firestore';
+import { db } from '../db/firebase';
 import type { Prescription } from '../db/schemas';
 import * as q from '../db/queries/prescriptions';
 
@@ -7,45 +8,37 @@ export function usePrescriptions() {
   const [prescriptions, setPrescriptions] = useState<Prescription[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const fetch = useCallback(async () => {
-    setLoading(true);
-    try {
-      setPrescriptions(await q.getAllPrescriptions());
-    } finally {
+  useEffect(() => {
+    const fsQuery = query(collection(db, 'prescriptions'), where('deletedAt', '==', null));
+    const unsub = onSnapshot(fsQuery, (snap) => {
+      const docs = snap.docs.map(d => ({ _id: d.id, ...d.data() }) as Prescription);
+      setPrescriptions(docs.sort((a, b) => b.date.localeCompare(a.date)));
       setLoading(false);
-    }
+    });
+    return unsub;
   }, []);
 
-  useEffect(() => {
-    fetch();
-    const changes = db.changes({ live: true, since: 'now', selector: { type: 'prescription' } });
-    changes.on('change', fetch);
-    return () => changes.cancel();
-  }, [fetch]);
-
-  return { prescriptions, loading, refetch: fetch };
+  return { prescriptions, loading };
 }
 
 export function usePrescriptionsForPatient(patientId: string | undefined) {
   const [prescriptions, setPrescriptions] = useState<Prescription[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const fetch = useCallback(async () => {
-    if (!patientId) { setPrescriptions([]); setLoading(false); return; }
-    setLoading(true);
-    try {
-      setPrescriptions(await q.getPrescriptionsForPatient(patientId));
-    } finally {
-      setLoading(false);
-    }
-  }, [patientId]);
-
   useEffect(() => {
-    fetch();
-    const changes = db.changes({ live: true, since: 'now', selector: { type: 'prescription' } });
-    changes.on('change', fetch);
-    return () => changes.cancel();
-  }, [patientId, fetch]);
+    if (!patientId) { setPrescriptions([]); setLoading(false); return; }
+    const fsQuery = query(
+      collection(db, 'prescriptions'),
+      where('patientId', '==', patientId),
+      where('deletedAt', '==', null)
+    );
+    const unsub = onSnapshot(fsQuery, (snap) => {
+      const docs = snap.docs.map(d => ({ _id: d.id, ...d.data() }) as Prescription);
+      setPrescriptions(docs.sort((a, b) => b.date.localeCompare(a.date)));
+      setLoading(false);
+    });
+    return unsub;
+  }, [patientId]);
 
   return { prescriptions, loading };
 }

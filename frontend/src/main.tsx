@@ -2,7 +2,6 @@ import { StrictMode, Component, type ReactNode } from 'react';
 import { createRoot } from 'react-dom/client';
 import './index.css';
 import App from './App.tsx';
-import { initializeDB } from './db/index';
 
 // Debug: verificar que JS carga
 console.log('main.tsx cargando...');
@@ -32,4 +31,3 @@ createRoot(document.getElementById('root')!).render(
   </StrictMode>
 );
 
-initializeDB().catch((err) => console.warn('[DB] Error inicializando índices:', err));

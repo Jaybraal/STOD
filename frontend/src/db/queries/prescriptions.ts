@@ -1,49 +1,32 @@
-import { db, generateId, now } from '../index';
+import { doc, setDoc, getDoc, updateDoc } from 'firebase/firestore';
+import { db } from '../firebase';
+import { generateId, now } from '../index';
 import type { Prescription } from '../schemas';
 
-export async function getPrescriptionsForPatient(patientId: string): Promise<Prescription[]> {
-  const result = await db.find({
-    selector: { type: 'prescription', patientId, deletedAt: { $exists: false } },
-  });
-  const prescriptions = result.docs as unknown as Prescription[];
-  return prescriptions.sort((a, b) => b.date.localeCompare(a.date));
-}
+const COL = 'prescriptions';
 
 export async function getPrescription(id: string): Promise<Prescription> {
-  return db.get(id) as unknown as Prescription;
-}
-
-export async function getAllPrescriptions(): Promise<Prescription[]> {
-  const result = await db.find({
-    selector: { type: 'prescription', deletedAt: { $exists: false } },
-  });
-  const prescriptions = result.docs as unknown as Prescription[];
-  return prescriptions.sort((a, b) => b.date.localeCompare(a.date));
+  const snap = await getDoc(doc(db, COL, id));
+  if (!snap.exists()) throw new Error('Receta no encontrada');
+  return { _id: snap.id, ...snap.data() } as Prescription;
 }
 
 export async function createPrescription(
-  data: Omit<Prescription, '_id' | '_rev' | 'type' | 'createdAt' | 'updatedAt'>
+  data: Omit<Prescription, '_id' | 'createdAt' | 'updatedAt' | 'deletedAt'>
 ): Promise<Prescription> {
   const timestamp = now();
-  const doc: Prescription = {
-    _id: generateId('prescription'),
-    type: 'prescription',
-    createdAt: timestamp,
-    updatedAt: timestamp,
-    ...data,
-  };
-  await db.put(doc);
-  return doc;
+  const id = generateId('prescription');
+  const docData = { createdAt: timestamp, updatedAt: timestamp, deletedAt: null, ...data };
+  await setDoc(doc(db, COL, id), docData);
+  return { _id: id, ...docData };
 }
 
-export async function updatePrescription(id: string, data: Partial<Prescription>): Promise<Prescription> {
-  const existing = await db.get(id) as unknown as Prescription;
-  const updated: Prescription = { ...existing, ...data, updatedAt: now() };
-  await db.put(updated);
-  return updated;
+export async function updatePrescription(id: string, data: Partial<Prescription>): Promise<void> {
+  const { _id: _, ...updates } = { ...data, updatedAt: now() };
+  void _;
+  await updateDoc(doc(db, COL, id), updates as Record<string, unknown>);
 }
 
 export async function deletePrescription(id: string): Promise<void> {
-  const doc = await db.get(id) as unknown as Prescription;
-  await db.put({ ...doc, deletedAt: now(), updatedAt: now() });
+  await updateDoc(doc(db, COL, id), { deletedAt: now(), updatedAt: now() });
 }

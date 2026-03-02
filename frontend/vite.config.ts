@@ -2,14 +2,9 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
-import { nodePolyfills } from 'vite-plugin-node-polyfills'
 
 export default defineConfig({
-  optimizeDeps: {
-    include: ['pouchdb-browser', 'pouchdb-find'],
-  },
   plugins: [
-    nodePolyfills(),
     react(),
     tailwindcss(),
     VitePWA({
