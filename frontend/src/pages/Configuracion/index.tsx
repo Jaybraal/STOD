@@ -2,12 +2,14 @@ import { useState, useEffect } from 'react';
 import { useConfig } from '../../hooks/useConfig';
 import { useAuth } from '../../context/AuthContext';
 import { generateJoinCode } from '../../db/queries/config';
+import { doc, deleteDoc } from 'firebase/firestore';
+import { db } from '../../db/firebase';
 import { Header } from '../../components/layout/Header';
 import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 import { LoadingPage } from '../../components/ui/Spinner';
-import { Save, Check, RefreshCw, Copy, Users } from 'lucide-react';
+import { Save, Check, RefreshCw, Copy, Users, LogOut } from 'lucide-react';
 
 export function ConfiguracionPage() {
   const { config, loading, updateConfig } = useConfig();
@@ -41,6 +43,14 @@ export function ConfiguracionPage() {
     setGeneratingCode(true);
     await generateJoinCode(clinicId);
     setGeneratingCode(false);
+  };
+
+  const handleLeaveClinic = async () => {
+    if (!user) return;
+    if (!confirm('¿Desvincularte de esta clínica? Tu cuenta quedará independiente.')) return;
+    await deleteDoc(doc(db, 'users', user.uid));
+    // Forzar recarga para que AuthContext resuelva el nuevo clinicId
+    window.location.reload();
   };
 
   const handleCopyCode = () => {
@@ -135,6 +145,22 @@ export function ConfiguracionPage() {
                 {generatingCode ? 'Generando...' : 'Generar código de conexión'}
               </Button>
             )}
+          </Card>
+        )}
+
+        {/* Desvincular dispositivo (solo miembros, no el dueño) */}
+        {!isOwner && (
+          <Card className="p-5 border-red-100">
+            <div className="flex items-center gap-2 mb-3">
+              <LogOut size={18} className="text-red-400" />
+              <h2 className="font-semibold text-slate-900">Desvincular dispositivo</h2>
+            </div>
+            <p className="text-sm text-slate-500 mb-4">
+              Este dispositivo está conectado a una clínica. Al desvincularte, tu cuenta quedará independiente y ya no verás los datos de esa clínica.
+            </p>
+            <Button variant="danger" onClick={handleLeaveClinic}>
+              Desvincularse de esta clínica
+            </Button>
           </Card>
         )}
 
