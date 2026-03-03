@@ -14,7 +14,8 @@ function getErrorMessage(code: string): string {
     case 'auth/email-already-in-use': return 'Ya existe una cuenta con ese email';
     case 'auth/weak-password': return 'La contraseña debe tener al menos 6 caracteres';
     case 'auth/too-many-requests': return 'Demasiados intentos fallidos. Intente más tarde';
-    default: return 'Ocurrió un error. Intente nuevamente';
+    case 'auth/operation-not-allowed': return 'Email/Password no está habilitado en Firebase. Actívalo en Authentication → Sign-in method';
+    default: return `Error: ${code || 'desconocido'}`;
   }
 }
 
