@@ -13,8 +13,7 @@ const DEFAULT_CONFIG: ClinicConfig = {
 };
 
 export function useConfig() {
-  const { user } = useAuth();
-  const clinicId = user!.uid;
+  const { clinicId: _cid } = useAuth(); const clinicId = _cid!;
   const [config, setConfig] = useState<ClinicConfig | null>(null);
   const [loading, setLoading] = useState(true);
 

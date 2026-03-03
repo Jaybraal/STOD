@@ -6,8 +6,7 @@ import type { Appointment } from '../db/schemas';
 import * as q from '../db/queries/appointments';
 
 export function useAppointments() {
-  const { user } = useAuth();
-  const clinicId = user!.uid;
+  const { clinicId: _cid } = useAuth(); const clinicId = _cid!;
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -27,8 +26,7 @@ export function useAppointments() {
 }
 
 export function useAppointmentsForDate(date: string) {
-  const { user } = useAuth();
-  const clinicId = user!.uid;
+  const { clinicId: _cid } = useAuth(); const clinicId = _cid!;
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -50,8 +48,7 @@ export function useAppointmentsForDate(date: string) {
 }
 
 export function useAppointmentsForPatient(patientId: string | undefined) {
-  const { user } = useAuth();
-  const clinicId = user!.uid;
+  const { clinicId: _cid } = useAuth(); const clinicId = _cid!;
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -78,8 +75,7 @@ export function useAppointmentsForPatient(patientId: string | undefined) {
 }
 
 export function useAppointmentMutations() {
-  const { user } = useAuth();
-  const clinicId = user!.uid;
+  const { clinicId: _cid } = useAuth(); const clinicId = _cid!;
   return {
     createAppointment: (data: Parameters<typeof q.createAppointment>[1]) => q.createAppointment(clinicId, data),
     updateAppointment: (id: string, data: Parameters<typeof q.updateAppointment>[2]) => q.updateAppointment(clinicId, id, data),

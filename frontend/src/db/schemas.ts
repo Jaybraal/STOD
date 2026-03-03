@@ -72,4 +72,5 @@ export interface ClinicConfig {
   doctorName: string;
   phone: string;
   address: string;
+  joinCode?: string; // Código de invitación para unir dispositivos
 }

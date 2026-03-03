@@ -6,8 +6,7 @@ import type { Treatment } from '../db/schemas';
 import * as q from '../db/queries/treatments';
 
 export function useTreatments() {
-  const { user } = useAuth();
-  const clinicId = user!.uid;
+  const { clinicId: _cid } = useAuth(); const clinicId = _cid!;
   const [treatments, setTreatments] = useState<Treatment[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -27,8 +26,7 @@ export function useTreatments() {
 }
 
 export function useTreatmentsForPatient(patientId: string | undefined) {
-  const { user } = useAuth();
-  const clinicId = user!.uid;
+  const { clinicId: _cid } = useAuth(); const clinicId = _cid!;
   const [treatments, setTreatments] = useState<Treatment[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -51,8 +49,7 @@ export function useTreatmentsForPatient(patientId: string | undefined) {
 }
 
 export function useTreatmentMutations() {
-  const { user } = useAuth();
-  const clinicId = user!.uid;
+  const { clinicId: _cid } = useAuth(); const clinicId = _cid!;
   return {
     getTreatment: (id: string) => q.getTreatment(clinicId, id),
     createTreatment: (data: Parameters<typeof q.createTreatment>[1]) => q.createTreatment(clinicId, data),

@@ -6,8 +6,7 @@ import type { Prescription } from '../db/schemas';
 import * as q from '../db/queries/prescriptions';
 
 export function usePrescriptions() {
-  const { user } = useAuth();
-  const clinicId = user!.uid;
+  const { clinicId: _cid } = useAuth(); const clinicId = _cid!;
   const [prescriptions, setPrescriptions] = useState<Prescription[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -28,8 +27,7 @@ export function usePrescriptions() {
 }
 
 export function usePrescriptionsForPatient(patientId: string | undefined) {
-  const { user } = useAuth();
-  const clinicId = user!.uid;
+  const { clinicId: _cid } = useAuth(); const clinicId = _cid!;
   const [prescriptions, setPrescriptions] = useState<Prescription[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -52,8 +50,7 @@ export function usePrescriptionsForPatient(patientId: string | undefined) {
 }
 
 export function usePrescriptionMutations() {
-  const { user } = useAuth();
-  const clinicId = user!.uid;
+  const { clinicId: _cid } = useAuth(); const clinicId = _cid!;
   return {
     createPrescription: (data: Parameters<typeof q.createPrescription>[1]) => q.createPrescription(clinicId, data),
     updatePrescription: (id: string, data: Parameters<typeof q.updatePrescription>[2]) => q.updatePrescription(clinicId, id, data),
