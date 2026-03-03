@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { usePatient, createPatient, updatePatient } from '../../hooks/usePatients';
+import { usePatient, usePatientMutations } from '../../hooks/usePatients';
 import { Header } from '../../components/layout/Header';
 import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
@@ -26,6 +26,7 @@ export function PacienteForm() {
   const { id } = useParams();
   const isEditing = Boolean(id);
   const { patient, loading } = usePatient(id);
+  const { createPatient, updatePatient } = usePatientMutations();
 
   const [form, setForm] = useState<FormData>(EMPTY_FORM);
   const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>({});

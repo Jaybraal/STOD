@@ -3,36 +3,37 @@ import { db } from '../firebase';
 import { generateId, now } from '../index';
 import type { Treatment, TreatmentStatus } from '../schemas';
 
-const COL = 'treatments';
+const col = (clinicId: string) => `clinics/${clinicId}/treatments`;
 
-export async function getTreatment(id: string): Promise<Treatment> {
-  const snap = await getDoc(doc(db, COL, id));
+export async function getTreatment(clinicId: string, id: string): Promise<Treatment> {
+  const snap = await getDoc(doc(db, col(clinicId), id));
   if (!snap.exists()) throw new Error('Tratamiento no encontrado');
   return { _id: snap.id, ...snap.data() } as Treatment;
 }
 
 export async function createTreatment(
+  clinicId: string,
   data: Omit<Treatment, '_id' | 'createdAt' | 'updatedAt' | 'deletedAt'>
 ): Promise<Treatment> {
   const timestamp = now();
   const id = generateId('treatment');
   const docData = { createdAt: timestamp, updatedAt: timestamp, deletedAt: null, ...data };
-  await setDoc(doc(db, COL, id), docData);
+  await setDoc(doc(db, col(clinicId), id), docData);
   return { _id: id, ...docData };
 }
 
-export async function updateTreatment(id: string, data: Partial<Treatment>): Promise<void> {
+export async function updateTreatment(clinicId: string, id: string, data: Partial<Treatment>): Promise<void> {
   const { _id: _, ...updates } = { ...data, updatedAt: now() };
   void _;
-  await updateDoc(doc(db, COL, id), updates as Record<string, unknown>);
+  await updateDoc(doc(db, col(clinicId), id), updates as Record<string, unknown>);
 }
 
-export async function updateTreatmentStatus(id: string, status: TreatmentStatus): Promise<void> {
-  await updateDoc(doc(db, COL, id), { status, updatedAt: now() });
+export async function updateTreatmentStatus(clinicId: string, id: string, status: TreatmentStatus): Promise<void> {
+  await updateDoc(doc(db, col(clinicId), id), { status, updatedAt: now() });
 }
 
-export async function deleteTreatment(id: string): Promise<void> {
-  await updateDoc(doc(db, COL, id), { deletedAt: now(), updatedAt: now() });
+export async function deleteTreatment(clinicId: string, id: string): Promise<void> {
+  await updateDoc(doc(db, col(clinicId), id), { deletedAt: now(), updatedAt: now() });
 }
 
 export function getTreatmentCostSummary(treatments: Treatment[]): { total: number; completado: number; pendiente: number } {

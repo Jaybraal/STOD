@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { usePatient, deletePatient } from '../../hooks/usePatients';
+import { usePatient, usePatientMutations } from '../../hooks/usePatients';
 import { useAppointmentsForPatient } from '../../hooks/useAppointments';
 import { useTreatmentsForPatient } from '../../hooks/useTreatments';
 import { usePrescriptionsForPatient } from '../../hooks/usePrescriptions';
@@ -24,6 +24,7 @@ export function PacienteDetalle() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const { patient, loading } = usePatient(id);
+  const { deletePatient } = usePatientMutations();
   const { appointments } = useAppointmentsForPatient(id);
   const { treatments } = useTreatmentsForPatient(id);
   const { prescriptions } = usePrescriptionsForPatient(id);

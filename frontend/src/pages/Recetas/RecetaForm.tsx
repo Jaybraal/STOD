@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { usePatients } from '../../hooks/usePatients';
-import { createPrescription, updatePrescription, deletePrescription, getPrescription } from '../../hooks/usePrescriptions';
+import { usePrescriptionMutations } from '../../hooks/usePrescriptions';
 import { Header } from '../../components/layout/Header';
 import { Input } from '../../components/ui/Input';
 import { Select } from '../../components/ui/Select';
@@ -30,6 +30,7 @@ export function RecetaForm() {
   const isEditing = Boolean(id);
 
   const { patients, loading: pLoading } = usePatients();
+  const { getPrescription, createPrescription, updatePrescription, deletePrescription } = usePrescriptionMutations();
   const [form, setForm] = useState<FormData>({
     patientId: searchParams.get('paciente') || '',
     appointmentId: '',

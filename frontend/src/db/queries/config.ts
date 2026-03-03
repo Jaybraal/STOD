@@ -2,7 +2,7 @@ import { doc, setDoc, getDoc, updateDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import type { ClinicConfig } from '../schemas';
 
-const DOC_REF = () => doc(db, 'config', 'clinic');
+const docRef = (clinicId: string) => doc(db, `clinics/${clinicId}/config`, 'clinic');
 
 const DEFAULT_CONFIG: ClinicConfig = {
   clinicName: '',
@@ -11,20 +11,22 @@ const DEFAULT_CONFIG: ClinicConfig = {
   address: '',
 };
 
-export async function getConfig(): Promise<ClinicConfig> {
-  const snap = await getDoc(DOC_REF());
+export async function getConfig(clinicId: string): Promise<ClinicConfig> {
+  const ref = docRef(clinicId);
+  const snap = await getDoc(ref);
   if (!snap.exists()) {
-    await setDoc(DOC_REF(), DEFAULT_CONFIG);
+    await setDoc(ref, DEFAULT_CONFIG);
     return DEFAULT_CONFIG;
   }
   return snap.data() as ClinicConfig;
 }
 
-export async function updateConfig(data: Partial<ClinicConfig>): Promise<void> {
-  const snap = await getDoc(DOC_REF());
+export async function updateConfig(clinicId: string, data: Partial<ClinicConfig>): Promise<void> {
+  const ref = docRef(clinicId);
+  const snap = await getDoc(ref);
   if (!snap.exists()) {
-    await setDoc(DOC_REF(), { ...DEFAULT_CONFIG, ...data });
+    await setDoc(ref, { ...DEFAULT_CONFIG, ...data });
   } else {
-    await updateDoc(DOC_REF(), data as Record<string, unknown>);
+    await updateDoc(ref, data as Record<string, unknown>);
   }
 }

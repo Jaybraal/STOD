@@ -5,7 +5,7 @@ import type { View } from 'react-big-calendar';
 import { format, parse, startOfWeek, getDay } from 'date-fns';
 import { es } from 'date-fns/locale';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
-import { useAppointments, updateAppointmentStatus } from '../../hooks/useAppointments';
+import { useAppointments, useAppointmentMutations } from '../../hooks/useAppointments';
 import { Header } from '../../components/layout/Header';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
@@ -46,6 +46,7 @@ const MESSAGES = {
 export function CitasPage() {
   const navigate = useNavigate();
   const { appointments, loading } = useAppointments();
+  const { updateAppointmentStatus } = useAppointmentMutations();
   const [viewMode, setViewMode] = useState<'calendar' | 'list'>('calendar');
   const [calView, setCalView] = useState<View>('month');
   const [selectedApt, setSelectedApt] = useState<Appointment | null>(null);

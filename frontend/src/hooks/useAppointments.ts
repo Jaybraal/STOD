@@ -1,32 +1,40 @@
 import { useEffect, useState } from 'react';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { db } from '../db/firebase';
+import { useAuth } from '../context/AuthContext';
 import type { Appointment } from '../db/schemas';
 import * as q from '../db/queries/appointments';
 
 export function useAppointments() {
-  const [appointments, setAppointments] = useState<Appointment[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const fsQuery = query(collection(db, 'appointments'), where('deletedAt', '==', null));
-    const unsub = onSnapshot(fsQuery, (snap) => {
-      setAppointments(snap.docs.map(d => ({ _id: d.id, ...d.data() }) as Appointment));
-      setLoading(false);
-    });
-    return unsub;
-  }, []);
-
-  return { appointments, loading };
-}
-
-export function useAppointmentsForDate(date: string) {
+  const { user } = useAuth();
+  const clinicId = user!.uid;
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fsQuery = query(
-      collection(db, 'appointments'),
+      collection(db, `clinics/${clinicId}/appointments`),
+      where('deletedAt', '==', null)
+    );
+    const unsub = onSnapshot(fsQuery, (snap) => {
+      setAppointments(snap.docs.map(d => ({ _id: d.id, ...d.data() }) as Appointment));
+      setLoading(false);
+    });
+    return unsub;
+  }, [clinicId]);
+
+  return { appointments, loading };
+}
+
+export function useAppointmentsForDate(date: string) {
+  const { user } = useAuth();
+  const clinicId = user!.uid;
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fsQuery = query(
+      collection(db, `clinics/${clinicId}/appointments`),
       where('date', '==', date),
       where('deletedAt', '==', null)
     );
@@ -36,19 +44,21 @@ export function useAppointmentsForDate(date: string) {
       setLoading(false);
     });
     return unsub;
-  }, [date]);
+  }, [clinicId, date]);
 
   return { appointments, loading };
 }
 
 export function useAppointmentsForPatient(patientId: string | undefined) {
+  const { user } = useAuth();
+  const clinicId = user!.uid;
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!patientId) { setAppointments([]); setLoading(false); return; }
     const fsQuery = query(
-      collection(db, 'appointments'),
+      collection(db, `clinics/${clinicId}/appointments`),
       where('patientId', '==', patientId),
       where('deletedAt', '==', null)
     );
@@ -62,13 +72,20 @@ export function useAppointmentsForPatient(patientId: string | undefined) {
       setLoading(false);
     });
     return unsub;
-  }, [patientId]);
+  }, [clinicId, patientId]);
 
   return { appointments, loading };
 }
 
-export const createAppointment = q.createAppointment;
-export const updateAppointment = q.updateAppointment;
-export const updateAppointmentStatus = q.updateAppointmentStatus;
-export const deleteAppointment = q.deleteAppointment;
-export const getAppointmentsInRange = q.getAppointmentsInRange;
+export function useAppointmentMutations() {
+  const { user } = useAuth();
+  const clinicId = user!.uid;
+  return {
+    createAppointment: (data: Parameters<typeof q.createAppointment>[1]) => q.createAppointment(clinicId, data),
+    updateAppointment: (id: string, data: Parameters<typeof q.updateAppointment>[2]) => q.updateAppointment(clinicId, id, data),
+    updateAppointmentStatus: (id: string, status: Parameters<typeof q.updateAppointmentStatus>[2]) => q.updateAppointmentStatus(clinicId, id, status),
+    deleteAppointment: (id: string) => q.deleteAppointment(clinicId, id),
+    getAppointment: (id: string) => q.getAppointment(clinicId, id),
+    getAppointmentsInRange: (startDate: string, endDate: string) => q.getAppointmentsInRange(clinicId, startDate, endDate),
+  };
+}

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useConfig, updateConfig } from '../../hooks/useConfig';
+import { useConfig } from '../../hooks/useConfig';
 import { Header } from '../../components/layout/Header';
 import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
@@ -8,7 +8,7 @@ import { LoadingPage } from '../../components/ui/Spinner';
 import { Save, Check, Wifi } from 'lucide-react';
 
 export function ConfiguracionPage() {
-  const { config, loading } = useConfig();
+  const { config, loading, updateConfig } = useConfig();
   const [form, setForm] = useState({ clinicName: '', doctorName: '', phone: '', address: '' });
   const [saved, setSaved] = useState(false);
 

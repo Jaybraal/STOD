@@ -1,6 +1,7 @@
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Users, CalendarDays, Stethoscope, FileText, Settings } from 'lucide-react';
+import { LayoutDashboard, Users, CalendarDays, Stethoscope, FileText, Settings, LogOut } from 'lucide-react';
 import { SyncStatusBar } from '../SyncStatusBar';
+import { useAuth } from '../../context/AuthContext';
 
 const NAV_ITEMS = [
   { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
@@ -11,6 +12,8 @@ const NAV_ITEMS = [
 ];
 
 export function Sidebar() {
+  const { logout } = useAuth();
+
   return (
     <aside className="hidden lg:flex flex-col w-56 bg-white border-r border-slate-200 h-full fixed left-0 top-0 z-20">
       {/* Logo */}
@@ -58,6 +61,13 @@ export function Sidebar() {
           <Settings size={18} />
           Configuración
         </NavLink>
+        <button
+          onClick={logout}
+          className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors w-full text-slate-500 hover:bg-red-50 hover:text-red-600"
+        >
+          <LogOut size={18} />
+          Cerrar sesión
+        </button>
       </div>
     </aside>
   );

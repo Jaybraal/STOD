@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { usePatients } from '../../hooks/usePatients';
-import { createAppointment, updateAppointment, deleteAppointment } from '../../hooks/useAppointments';
-import { getAppointment } from '../../db/queries/appointments';
+import { useAppointmentMutations } from '../../hooks/useAppointments';
 import { Header } from '../../components/layout/Header';
 import { Input } from '../../components/ui/Input';
 import { Select } from '../../components/ui/Select';
@@ -29,6 +28,7 @@ export function CitaForm() {
   const isEditing = Boolean(id);
 
   const { patients, loading: pLoading } = usePatients();
+  const { createAppointment, updateAppointment, deleteAppointment, getAppointment } = useAppointmentMutations();
   const [form, setForm] = useState<FormData>({
     patientId: searchParams.get('paciente') || '',
     date: todayStr(),

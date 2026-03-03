@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getPrescription } from '../../hooks/usePrescriptions';
+import { useAuth } from '../../context/AuthContext';
+import { getPrescription } from '../../db/queries/prescriptions';
 import { getPatient } from '../../db/queries/patients';
 import { getConfig } from '../../db/queries/config';
 import type { Prescription, Patient, ClinicConfig } from '../../db/schemas';
@@ -10,19 +11,21 @@ import { Printer, ArrowLeft } from 'lucide-react';
 export function RecetaPrint() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const clinicId = user!.uid;
   const [rx, setRx] = useState<Prescription | null>(null);
   const [patient, setPatient] = useState<Patient | null>(null);
   const [config, setConfig] = useState<ClinicConfig | null>(null);
 
   useEffect(() => {
     if (!id) return;
-    Promise.all([getPrescription(id), getConfig()]).then(async ([rxData, cfg]) => {
+    Promise.all([getPrescription(clinicId, id), getConfig(clinicId)]).then(async ([rxData, cfg]) => {
       setRx(rxData);
       setConfig(cfg);
-      const pt = await getPatient(rxData.patientId);
+      const pt = await getPatient(clinicId, rxData.patientId);
       setPatient(pt);
     });
-  }, [id]);
+  }, [id, clinicId]);
 
   if (!rx || !patient) {
     return (
