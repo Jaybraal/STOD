@@ -4,6 +4,7 @@ import {
   createUserWithEmailAndPassword,
 } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
+
 import { auth, db } from '../../db/firebase';
 import { getClinicIdByCode } from '../../db/queries/config';
 
@@ -54,8 +55,13 @@ export function AuthPage() {
         const clinicId = await getClinicIdByCode(code.trim());
         if (!clinicId) { setError('Código inválido o expirado'); setLoading(false); return; }
         const { user } = await createUserWithEmailAndPassword(auth, email, password);
-        // Guardar mapeo usuario → clínica
-        await setDoc(doc(db, 'users', user.uid), { clinicId });
+        // Crear solicitud pendiente — el dueño debe aprobarla
+        await setDoc(doc(db, 'users', user.uid), {
+          clinicId,
+          status: 'pending',
+          email: user.email ?? email,
+          joinedAt: new Date().toISOString(),
+        });
       }
     } catch (err: unknown) {
       const errCode = (err as { code?: string }).code ?? '';

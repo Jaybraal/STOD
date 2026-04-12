@@ -1,0 +1,37 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Colección users: mapeo uid → clínica
+    match /users/{userId} {
+      // El propio usuario puede leer/crear su doc
+      allow read, create: if request.auth != null && request.auth.uid == userId;
+
+      // El dueño de la clínica puede leer, aprobar y eliminar miembros
+      allow read, update, delete: if request.auth != null
+        && resource.data.clinicId == request.auth.uid;
+    }
+
+    // Configuración e datos de la clínica
+    match /clinics/{clinicId}/{document=**} {
+      allow read, write: if request.auth != null && (
+        // Es el dueño
+        request.auth.uid == clinicId
+        ||
+        // Es miembro aprobado (tiene doc en users con este clinicId y sin status pending)
+        (
+          exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.clinicId == clinicId &&
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('status', '') != 'pending'
+        )
+      );
+    }
+
+    // Códigos de unión — la lectura es pública (se valida antes de crear cuenta)
+    match /codes/{code} {
+      allow read: if true;
+      allow write: if request.auth != null
+        && request.resource.data.clinicId == request.auth.uid;
+    }
+  }
+}

@@ -1,62 +1,75 @@
 # STOD - Sistema de Odontología
 
-## Iniciar en desarrollo
+> Un solo servicio en Railway sirve tanto el frontend como el backend.
+> No se usa Vercel ni ningún otro hosting externo.
 
-### 1. Frontend
+---
+
+## Desarrollo local
+
+### 1. Backend (sirve también el frontend compilado)
+```bash
+cd backend
+cp .env.example .env
+# Editar .env con tus credenciales de CouchDB
+npm install
+npm run dev
+```
+
+### 2. Frontend (modo desarrollo con hot-reload)
 ```bash
 cd frontend
 cp .env.example .env
-# Editar .env y poner la URL del backend si ya está desplegado
+# Editar .env con tus credenciales de Firebase
+npm install
 npm run dev
 ```
 Abrir: http://localhost:5173
 
-### 2. Backend (solo necesario para sincronización entre dispositivos)
-```bash
-cd backend
-cp .env.example .env
-# Editar .env con las credenciales de CouchDB
-npm run dev
-```
+> En desarrollo, el frontend apunta al backend en `http://localhost:3001`.
+> Puedes setear `VITE_API_URL=http://localhost:3001` en `frontend/.env` si usas ambos a la vez.
 
 ---
 
-## Despliegue en producción
+## Despliegue en Railway (todo en uno)
 
 ### Paso 1: CouchDB en Railway
-1. Ir a railway.app → New Project → Deploy from image: `couchdb`
-2. Variables de entorno en Railway:
-   - `COUCHDB_USER=admin`
-   - `COUCHDB_PASSWORD=<contraseña-segura>`
-3. Agregar dominio público → anotar la URL (ej: `https://couchdb-xxx.railway.app`)
-4. Habilitar CORS en CouchDB:
-   - Ir a `https://tu-couchdb.railway.app/_utils` → Config → CORS → Enable all origins
-
-### Paso 2: Backend en Railway
-1. Subir la carpeta `backend/` a un repositorio de GitHub
-2. Railway → New Project → Deploy from GitHub repo
-3. Variables de entorno:
+1. Railway → New Project → Deploy from image: `couchdb`
+2. Variables de entorno:
    ```
+   COUCHDB_USER=admin
+   COUCHDB_PASSWORD=<contraseña-segura>
+   ```
+3. Agregar dominio público → anotar URL (ej: `https://couchdb-xxx.railway.app`)
+4. Habilitar CORS: ir a `https://tu-couchdb.railway.app/_utils` → Config → CORS → Enable all origins
+
+### Paso 2: App STOD en Railway (frontend + backend juntos)
+1. Subir este repositorio a GitHub
+2. Railway → New Project → Deploy from GitHub repo → seleccionar el repo
+3. Variables de entorno del servicio:
+   ```
+   PORT=3001
    COUCHDB_URL=https://tu-couchdb.railway.app
    COUCHDB_ADMIN_USER=admin
    COUCHDB_ADMIN_PASS=<contraseña-de-couchdb>
-   FRONTEND_URL=https://tu-frontend.vercel.app
-   PORT=3001
-   ```
-4. Anotar la URL del backend (ej: `https://stod-backend-xxx.railway.app`)
 
-### Paso 3: Frontend en Vercel
-1. Subir la carpeta `frontend/` a GitHub
-2. Vercel → New Project → Import desde GitHub
-3. Variable de entorno:
+   # Firebase (baked en el build del frontend)
+   VITE_FIREBASE_API_KEY=tu-api-key
+   VITE_FIREBASE_AUTH_DOMAIN=tu-proyecto.firebaseapp.com
+   VITE_FIREBASE_PROJECT_ID=tu-proyecto
+   VITE_FIREBASE_STORAGE_BUCKET=tu-proyecto.appspot.com
+   VITE_FIREBASE_MESSAGING_SENDER_ID=123456789
+   VITE_FIREBASE_APP_ID=1:123456789:web:abcdef
    ```
-   VITE_API_URL=https://stod-backend-xxx.railway.app
-   ```
-4. Deploy → obtener URL pública
+4. Railway detecta el `nixpacks.toml` automáticamente y construye todo.
+5. Agregar dominio público → esa URL es la app completa.
+
+> Railway ejecuta `node backend/dist/index.js` el cual sirve la API en `/api/*`
+> y el frontend compilado en todas las demás rutas.
 
 ---
 
-## Uso del sistema de sincronización
+## Sincronización entre dispositivos
 
 ### Dispositivo A (principal):
 1. Ir a **Configuración** → sección "Sincronización"
@@ -65,28 +78,25 @@ npm run dev
 
 ### Dispositivo B:
 1. Ir a **Configuración** → sección "Sincronización"
-2. Ingresar el código `DENT-X7K2` en el campo de texto
-3. Click en **"Conectar"**
-4. Ambos dispositivos comenzarán a sincronizar automáticamente
+2. Ingresar el código `DENT-X7K2`
+3. Click en **"Conectar"** → ambos dispositivos sincronizan automáticamente
 
 ---
 
 ## Instalar como app (PWA)
 
-### Android (Chrome):
-- Abrir en Chrome → Menú (⋮) → "Agregar a pantalla de inicio"
-
-### iPhone/iPad (Safari):
-- Abrir en Safari → Compartir → "Añadir a pantalla de inicio"
-
-### PC/Mac (Chrome/Edge):
-- Ícono de instalación en la barra de direcciones → "Instalar"
+| Plataforma | Cómo instalar |
+|------------|---------------|
+| Android (Chrome) | Menú (⋮) → "Agregar a pantalla de inicio" |
+| iPhone/iPad (Safari) | Compartir → "Añadir a pantalla de inicio" |
+| PC/Mac (Chrome/Edge) | Ícono de instalación en barra de direcciones |
 
 ---
 
 ## Estructura del proyecto
 ```
 STOD/
-├── frontend/    # App React + PWA
-└── backend/     # API Node.js de sincronización
+├── frontend/        # React + Vite + PWA (se compila a frontend/dist)
+├── backend/         # Express + Node.js (sirve el frontend compilado)
+└── nixpacks.toml    # Configuración de build para Railway
 ```

@@ -1,11 +1,12 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import { onAuthStateChanged, signOut, type User } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, onSnapshot } from 'firebase/firestore';
 import { auth, db } from '../db/firebase';
 
 interface AuthContextType {
   user: User | null;
   clinicId: string | null;
+  pendingApproval: boolean;
   loading: boolean;
   logout: () => Promise<void>;
 }
@@ -15,30 +16,51 @@ const AuthContext = createContext<AuthContextType | null>(null);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [clinicId, setClinicId] = useState<string | null>(null);
+  const [pendingApproval, setPendingApproval] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    return onAuthStateChanged(auth, async (u) => {
+    let unsubUser: (() => void) | null = null;
+
+    const unsubAuth = onAuthStateChanged(auth, (u) => {
+      if (unsubUser) { unsubUser(); unsubUser = null; }
       setUser(u);
+
       if (u) {
-        // Verificar si este usuario pertenece a otra clínica (se unió con código)
-        const userDoc = await getDoc(doc(db, 'users', u.uid));
-        if (userDoc.exists()) {
-          setClinicId(userDoc.data().clinicId as string);
-        } else {
-          setClinicId(u.uid); // Dueño: su propio UID es el clinicId
-        }
+        unsubUser = onSnapshot(doc(db, 'users', u.uid), (snap) => {
+          if (snap.exists()) {
+            const data = snap.data();
+            if (data.status === 'pending') {
+              setPendingApproval(true);
+              setClinicId(null);
+            } else {
+              setPendingApproval(false);
+              setClinicId(data.clinicId as string);
+            }
+          } else {
+            // No hay doc → es el dueño de la clínica
+            setPendingApproval(false);
+            setClinicId(u.uid);
+          }
+          setLoading(false);
+        });
       } else {
         setClinicId(null);
+        setPendingApproval(false);
+        setLoading(false);
       }
-      setLoading(false);
     });
+
+    return () => {
+      unsubAuth();
+      if (unsubUser) unsubUser();
+    };
   }, []);
 
   const logout = () => signOut(auth);
 
   return (
-    <AuthContext.Provider value={{ user, clinicId, loading, logout }}>
+    <AuthContext.Provider value={{ user, clinicId, pendingApproval, loading, logout }}>
       {children}
     </AuthContext.Provider>
   );

@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { Clock } from 'lucide-react';
 import { AppShell } from './components/layout/AppShell';
 import { SyncProvider } from './context/SyncContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -24,10 +25,34 @@ function Spinner() {
   );
 }
 
+function PendingApprovalScreen() {
+  const { logout } = useAuth();
+  return (
+    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+      <div className="w-full max-w-sm text-center">
+        <div className="w-16 h-16 rounded-2xl bg-amber-100 flex items-center justify-center mx-auto mb-4">
+          <Clock className="text-amber-500" size={32} />
+        </div>
+        <h1 className="text-xl font-semibold text-slate-900 mb-2">Esperando aprobación</h1>
+        <p className="text-sm text-slate-500 mb-6">
+          Tu solicitud fue enviada. El administrador de la clínica debe aprobarte antes de que puedas acceder.
+        </p>
+        <button
+          onClick={logout}
+          className="text-sm text-slate-400 hover:text-slate-600 underline"
+        >
+          Cancelar y cerrar sesión
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { user, loading } = useAuth();
+  const { user, loading, pendingApproval } = useAuth();
   if (loading) return <Spinner />;
   if (!user) return <Navigate to="/login" replace />;
+  if (pendingApproval) return <PendingApprovalScreen />;
   return <>{children}</>;
 }
 
