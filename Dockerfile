@@ -2,22 +2,25 @@ FROM node:22-alpine
 
 WORKDIR /app
 
-# Copiar e instalar dependencias del backend
-COPY backend/package*.json ./backend/
-RUN cd backend && npm ci
+# --- Backend ---
+WORKDIR /app/backend
+COPY backend/package*.json ./
+RUN npm install
 
-# Copiar e instalar dependencias del frontend
-COPY frontend/package*.json ./frontend/
-RUN cd frontend && npm ci
+# --- Frontend ---
+WORKDIR /app/frontend
+COPY frontend/package*.json ./
+RUN npm install
 
 # Copiar código fuente
+WORKDIR /app
 COPY frontend/ ./frontend/
 COPY backend/ ./backend/
 
-# Build frontend (los VITE_* vars se inyectan en tiempo de build)
+# Build frontend (VITE_* vars se inyectan en tiempo de build)
 RUN cd frontend && npm run build
 
-# Build backend
+# Build backend TypeScript
 RUN cd backend && npm run build
 
 EXPOSE 3001
