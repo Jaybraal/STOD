@@ -1,4 +1,4 @@
-import type { AppointmentStatus, TreatmentStatus } from '../db/schemas';
+import type { AppointmentStatus, TreatmentStatus, ClinicType, CustomField } from '../db/schemas';
 
 // Colores por estado de cita
 export const APPOINTMENT_STATUS_COLORS: Record<AppointmentStatus, string> = {
@@ -84,3 +84,49 @@ export const APPOINTMENT_DURATIONS = [
 ];
 
 export const API_URL = import.meta.env.VITE_API_URL ?? '';
+
+// Tipos de clínica disponibles
+export const CLINIC_TYPE_OPTIONS: { value: ClinicType; label: string; emoji: string }[] = [
+  { value: 'dental',       label: 'Odontología / Dental',       emoji: '🦷' },
+  { value: 'medicina',     label: 'Medicina General',           emoji: '🩺' },
+  { value: 'psicologia',   label: 'Psicología',                 emoji: '🧠' },
+  { value: 'fisioterapia', label: 'Fisioterapia / Rehabilitación', emoji: '💪' },
+  { value: 'nutricion',    label: 'Nutrición / Dietética',      emoji: '🥗' },
+  { value: 'veterinaria',  label: 'Veterinaria',                emoji: '🐾' },
+  { value: 'otro',         label: 'Otro tipo de consultorio',   emoji: '🏥' },
+];
+
+// Campos de tratamiento por defecto según tipo de clínica
+export const DEFAULT_TREATMENT_FIELDS: Record<ClinicType, CustomField[]> = {
+  dental: [
+    {
+      id: 'tooth',
+      label: 'Pieza dental (FDI)',
+      type: 'select',
+      placeholder: 'Seleccionar...',
+      options: TEETH_FDI.map((t) => t.value),
+      required: false,
+    },
+  ],
+  medicina: [
+    { id: 'diagnostico', label: 'Diagnóstico / CIE-10', type: 'text', placeholder: 'Ej: J06 - Infección respiratoria', required: false },
+    { id: 'zona',        label: 'Zona / Área corporal', type: 'text', placeholder: 'Ej: Zona lumbar', required: false },
+  ],
+  psicologia: [
+    { id: 'sesion',       label: 'N.º de sesión',         type: 'number', placeholder: '1', required: false },
+    { id: 'modalidad',    label: 'Modalidad',             type: 'select', options: ['Presencial', 'Online', 'Grupal'], required: false },
+  ],
+  fisioterapia: [
+    { id: 'zona',         label: 'Zona corporal',          type: 'text', placeholder: 'Ej: Hombro derecho', required: false },
+    { id: 'sesion',       label: 'N.º de sesión',          type: 'number', placeholder: '1', required: false },
+  ],
+  nutricion: [
+    { id: 'peso',         label: 'Peso (kg)',               type: 'number', placeholder: '70', required: false },
+    { id: 'imc',          label: 'IMC',                     type: 'number', placeholder: '22.5', required: false },
+  ],
+  veterinaria: [
+    { id: 'especie',      label: 'Especie',                 type: 'select', options: ['Perro', 'Gato', 'Ave', 'Conejo', 'Reptil', 'Otro'], required: false },
+    { id: 'raza',         label: 'Raza',                    type: 'text', placeholder: 'Ej: Golden Retriever', required: false },
+  ],
+  otro: [],
+};

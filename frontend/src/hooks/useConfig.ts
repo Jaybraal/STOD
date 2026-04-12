@@ -10,6 +10,8 @@ const DEFAULT_CONFIG: ClinicConfig = {
   doctorName: '',
   phone: '',
   address: '',
+  clinicType: undefined,
+  treatmentFields: [],
 };
 
 export function useConfig() {

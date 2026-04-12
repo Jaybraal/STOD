@@ -2,6 +2,8 @@ import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import rateLimit from 'express-rate-limit';
+import path from 'path';
+import { existsSync } from 'fs';
 import syncRouter from './routes/sync';
 
 const app = express();
@@ -35,8 +37,17 @@ app.get('/api/health', (_req, res) => {
   res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-// Rutas
+// Rutas API
 app.use('/api/sync', syncLimiter, syncRouter);
+
+// Servir frontend en producción
+const frontendDist = path.join(__dirname, '../../frontend/dist');
+if (existsSync(frontendDist)) {
+  app.use(express.static(frontendDist));
+  app.get('*', (_req, res) => {
+    res.sendFile(path.join(frontendDist, 'index.html'));
+  });
+}
 
 app.listen(PORT, () => {
   console.log(`[STOD Backend] Servidor corriendo en http://localhost:${PORT}`);

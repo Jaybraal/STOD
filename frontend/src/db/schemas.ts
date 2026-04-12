@@ -38,13 +38,14 @@ export type TreatmentStatus = 'planificado' | 'en_proceso' | 'completado';
 // Tratamiento
 export interface Treatment extends BaseDoc {
   patientId: string;
-  tooth: string;        // Notación FDI: "1.1", "2.8", etc.
+  tooth?: string;       // Legado odontología — usar customData para nuevos campos
   procedure: string;
   status: TreatmentStatus;
   cost: number;
   notes: string;
   startDate: string;
   endDate: string;
+  customData?: Record<string, string | number>; // Campos personalizados del tipo de clínica
 }
 
 // Medicamento dentro de una receta
@@ -66,11 +67,36 @@ export interface Prescription extends BaseDoc {
   doctorNotes: string;
 }
 
+// Tipo de clínica
+export type ClinicType =
+  | 'dental'
+  | 'medicina'
+  | 'psicologia'
+  | 'fisioterapia'
+  | 'nutricion'
+  | 'veterinaria'
+  | 'otro';
+
+// Tipos de campo personalizado
+export type CustomFieldType = 'text' | 'number' | 'select' | 'textarea';
+
+// Definición de un campo personalizado en el formulario de tratamiento
+export interface CustomField {
+  id: string;
+  label: string;
+  type: CustomFieldType;
+  placeholder?: string;
+  options?: string[];   // Solo para type === 'select'
+  required: boolean;
+}
+
 // Configuración de la clínica
 export interface ClinicConfig {
   clinicName: string;
   doctorName: string;
   phone: string;
   address: string;
-  joinCode?: string; // Código de invitación para unir dispositivos
+  joinCode?: string;              // Código de invitación para unir dispositivos
+  clinicType?: ClinicType;        // Tipo de clínica seleccionado
+  treatmentFields?: CustomField[]; // Campos personalizados del formulario de tratamiento
 }

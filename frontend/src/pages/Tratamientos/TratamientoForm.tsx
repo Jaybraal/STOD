@@ -2,23 +2,77 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { usePatients } from '../../hooks/usePatients';
 import { useTreatmentMutations } from '../../hooks/useTreatments';
+import { useConfig } from '../../hooks/useConfig';
 import { Header } from '../../components/layout/Header';
 import { Input } from '../../components/ui/Input';
 import { Select } from '../../components/ui/Select';
 import { Button } from '../../components/ui/Button';
 import { LoadingPage } from '../../components/ui/Spinner';
-import type { Treatment, TreatmentStatus } from '../../db/schemas';
+import type { Treatment, TreatmentStatus, CustomField } from '../../db/schemas';
 import { TEETH_FDI } from '../../utils/constants';
 import { todayStr } from '../../utils/dateUtils';
 import { Save, Trash2 } from 'lucide-react';
 
 const STATUS_OPTIONS: { value: TreatmentStatus; label: string }[] = [
   { value: 'planificado', label: 'Planificado' },
-  { value: 'en_proceso', label: 'En proceso' },
-  { value: 'completado', label: 'Completado' },
+  { value: 'en_proceso',  label: 'En proceso' },
+  { value: 'completado',  label: 'Completado' },
 ];
 
-type FormData = Omit<Treatment, '_id' | '_rev' | 'type' | 'createdAt' | 'updatedAt' | 'deletedAt'>;
+type BaseFormData = Omit<Treatment, '_id' | '_rev' | 'type' | 'createdAt' | 'updatedAt' | 'deletedAt' | 'tooth' | 'customData'>;
+
+function renderCustomField(
+  field: CustomField,
+  value: string,
+  onChange: (val: string) => void,
+  error?: string,
+) {
+  const base =
+    'w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500';
+
+  if (field.type === 'select') {
+    const opts = (field.id === 'tooth' ? TEETH_FDI.map((t) => t.value) : field.options) || [];
+    return (
+      <Select
+        label={field.label + (field.required ? ' *' : '')}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        options={opts.map((o) => ({ value: o, label: o }))}
+        placeholder="Seleccionar..."
+        error={error}
+      />
+    );
+  }
+
+  if (field.type === 'textarea') {
+    return (
+      <div className="flex flex-col gap-1">
+        <label className="text-sm font-medium text-slate-700">
+          {field.label}{field.required && ' *'}
+        </label>
+        <textarea
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={field.placeholder}
+          rows={3}
+          className={`${base} resize-none`}
+        />
+        {error && <p className="text-xs text-red-500">{error}</p>}
+      </div>
+    );
+  }
+
+  return (
+    <Input
+      label={field.label + (field.required ? ' *' : '')}
+      type={field.type === 'number' ? 'number' : 'text'}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      placeholder={field.placeholder}
+      error={error}
+    />
+  );
+}
 
 export function TratamientoForm() {
   const navigate = useNavigate();
@@ -27,10 +81,11 @@ export function TratamientoForm() {
   const isEditing = Boolean(id);
 
   const { patients, loading: pLoading } = usePatients();
+  const { config, loading: cLoading } = useConfig();
   const { getTreatment, createTreatment, updateTreatment, deleteTreatment } = useTreatmentMutations();
-  const [form, setForm] = useState<FormData>({
+
+  const [form, setForm] = useState<BaseFormData>({
     patientId: searchParams.get('paciente') || '',
-    tooth: '',
     procedure: '',
     status: 'planificado',
     cost: 0,
@@ -38,16 +93,16 @@ export function TratamientoForm() {
     startDate: todayStr(),
     endDate: '',
   });
+  const [customData, setCustomData] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(isEditing);
   const [saving, setSaving] = useState(false);
-  const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>({});
+  const [errors, setErrors] = useState<Partial<Record<string, string>>>({});
 
   useEffect(() => {
     if (!isEditing || !id) return;
     getTreatment(id).then((t) => {
       setForm({
         patientId: t.patientId,
-        tooth: t.tooth,
         procedure: t.procedure,
         status: t.status,
         cost: t.cost,
@@ -55,14 +110,25 @@ export function TratamientoForm() {
         startDate: t.startDate,
         endDate: t.endDate,
       });
+      // Migrar campo legacy 'tooth' si existe
+      const legacy: Record<string, string> = {};
+      if (t.tooth) legacy['tooth'] = t.tooth;
+      setCustomData({ ...legacy, ...(t.customData as Record<string, string> | undefined || {}) });
       setLoading(false);
     });
   }, [id, isEditing]);
 
+  const treatmentFields = config?.treatmentFields || [];
+
   const validate = () => {
-    const e: typeof errors = {};
+    const e: Record<string, string> = {};
     if (!form.patientId) e.patientId = 'Selecciona un paciente';
     if (!form.procedure.trim()) e.procedure = 'El procedimiento es requerido';
+    treatmentFields.forEach((f) => {
+      if (f.required && !customData[f.id]?.trim()) {
+        e[f.id] = `${f.label} es requerido`;
+      }
+    });
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -72,10 +138,11 @@ export function TratamientoForm() {
     if (!validate()) return;
     setSaving(true);
     try {
+      const payload = { ...form, customData };
       if (isEditing && id) {
-        await updateTreatment(id, form);
+        await updateTreatment(id, payload);
       } else {
-        await createTreatment(form);
+        await createTreatment(payload);
       }
       navigate(-1);
     } finally {
@@ -89,7 +156,7 @@ export function TratamientoForm() {
     navigate(-1);
   };
 
-  if (loading || pLoading) return <LoadingPage />;
+  if (loading || pLoading || cLoading) return <LoadingPage />;
 
   return (
     <div>
@@ -104,29 +171,30 @@ export function TratamientoForm() {
           error={errors.patientId}
         />
 
-        <div className="grid grid-cols-2 gap-4">
-          <Select
-            label="Pieza dental (FDI)"
-            value={form.tooth}
-            onChange={(e) => setForm({ ...form, tooth: e.target.value })}
-            options={TEETH_FDI}
-            placeholder="Seleccionar..."
-          />
-          <Select
-            label="Estado"
-            value={form.status}
-            onChange={(e) => setForm({ ...form, status: e.target.value as TreatmentStatus })}
-            options={STATUS_OPTIONS}
-          />
-        </div>
-
         <Input
-          label="Procedimiento *"
+          label="Procedimiento / Servicio *"
           value={form.procedure}
           onChange={(e) => setForm({ ...form, procedure: e.target.value })}
-          placeholder="Extracción, corona, endodoncia..."
+          placeholder="Describe el procedimiento o servicio..."
           error={errors.procedure}
         />
+
+        <Select
+          label="Estado"
+          value={form.status}
+          onChange={(e) => setForm({ ...form, status: e.target.value as TreatmentStatus })}
+          options={STATUS_OPTIONS}
+        />
+
+        {/* Campos personalizados según tipo de clínica */}
+        {treatmentFields.map((field) =>
+          renderCustomField(
+            field,
+            customData[field.id] || '',
+            (val) => setCustomData((prev) => ({ ...prev, [field.id]: val })),
+            errors[field.id],
+          )
+        )}
 
         <Input
           label="Costo ($)"
