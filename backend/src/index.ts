@@ -9,6 +9,9 @@ import syncRouter from './routes/sync';
 const app = express();
 const PORT = process.env.PORT || 3001;
 
+// Necesario para express-rate-limit detrás de proxies (Railway, Render, etc.)
+app.set('trust proxy', 1);
+
 // CORS
 app.use(cors({
   origin: process.env.FRONTEND_URL || '*',
