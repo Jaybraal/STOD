@@ -249,8 +249,14 @@ export function ConfiguracionPage() {
   const handleGenerateCode = async () => {
     if (!clinicId) return;
     setGeneratingCode(true);
-    await generateJoinCode(clinicId);
-    setGeneratingCode(false);
+    try {
+      await generateJoinCode(clinicId);
+    } catch (err) {
+      console.error('[generateCode]', err);
+      alert('Error al generar el código. Revisa tu conexión e inténtalo de nuevo.');
+    } finally {
+      setGeneratingCode(false);
+    }
   };
 
   const handleLeaveClinic = async () => {
