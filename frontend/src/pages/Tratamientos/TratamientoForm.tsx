@@ -11,7 +11,7 @@ import { LoadingPage } from '../../components/ui/Spinner';
 import type { Treatment, TreatmentStatus, CustomField } from '../../db/schemas';
 import { TEETH_FDI } from '../../utils/constants';
 import { todayStr } from '../../utils/dateUtils';
-import { Save, Trash2 } from 'lucide-react';
+import { Save, Trash2, Settings2 } from 'lucide-react';
 
 const STATUS_OPTIONS: { value: TreatmentStatus; label: string }[] = [
   { value: 'planificado', label: 'Planificado' },
@@ -31,13 +31,15 @@ function renderCustomField(
     'w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500';
 
   if (field.type === 'select') {
-    const opts = (field.id === 'tooth' ? TEETH_FDI.map((t) => t.value) : field.options) || [];
+    const opts = field.id === 'tooth'
+      ? TEETH_FDI.map((t) => ({ value: t.value, label: t.label }))
+      : (field.options || []).map((o) => ({ value: o, label: o }));
     return (
       <Select
         label={field.label + (field.required ? ' *' : '')}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        options={opts.map((o) => ({ value: o, label: o }))}
+        options={opts}
         placeholder="Seleccionar..."
         error={error}
       />
@@ -194,6 +196,16 @@ export function TratamientoForm() {
             (val) => setCustomData((prev) => ({ ...prev, [field.id]: val })),
             errors[field.id],
           )
+        )}
+        {treatmentFields.length === 0 && (
+          <button
+            type="button"
+            onClick={() => navigate('/configuracion')}
+            className="w-full flex items-center gap-2 justify-center text-xs text-slate-400 hover:text-sky-600 py-2 rounded-lg border border-dashed border-slate-200 hover:border-sky-300 transition-colors"
+          >
+            <Settings2 size={13} />
+            Agregar campos personalizados desde Configuración
+          </button>
         )}
 
         <Input
