@@ -5,15 +5,18 @@ const SUPERADMIN_UID = 'RESKS8ugyVMK9iIpdjFOyFbA9XF3';
 
 // Inicializar Firebase Admin (solo una vez)
 if (!admin.apps.length) {
-  const serviceAccount = process.env.FIREBASE_SERVICE_ACCOUNT;
-  if (serviceAccount) {
-    admin.initializeApp({
-      credential: admin.credential.cert(JSON.parse(serviceAccount)),
-    });
+  const raw = process.env.FIREBASE_SERVICE_ACCOUNT;
+  if (raw) {
+    // Railway puede expandir \n a saltos de línea reales dentro del JSON — los revertimos
+    let parsed: object;
+    try {
+      parsed = JSON.parse(raw);
+    } catch {
+      parsed = JSON.parse(raw.replace(/\n/g, '\\n'));
+    }
+    admin.initializeApp({ credential: admin.credential.cert(parsed as admin.ServiceAccount) });
   } else {
-    admin.initializeApp({
-      credential: admin.credential.applicationDefault(),
-    });
+    admin.initializeApp({ credential: admin.credential.applicationDefault() });
   }
 }
 
