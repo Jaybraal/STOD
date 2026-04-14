@@ -3,6 +3,8 @@ import { onAuthStateChanged, signOut, type User } from 'firebase/auth';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { auth, db } from '../db/firebase';
 
+const SUPERADMIN_UID = 'RESKS8ugyVMK9iIpdjFOyFbA9XF3';
+
 interface AuthContextType {
   user: User | null;
   clinicId: string | null;
@@ -25,25 +27,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     let unsubUser: (() => void) | null = null;
-    let unsubSuperAdmin: (() => void) | null = null;
 
     const unsubAuth = onAuthStateChanged(auth, (u) => {
       if (unsubUser) { unsubUser(); unsubUser = null; }
-      if (unsubSuperAdmin) { unsubSuperAdmin(); unsubSuperAdmin = null; }
       setUser(u);
 
       if (u) {
-        // Verificar si es superadmin del sistema
-        unsubSuperAdmin = onSnapshot(
-          doc(db, 'superadmins', u.uid),
-          (snap) => {
-            console.log('[Superadmin] doc exists:', snap.exists(), '| uid:', u.uid);
-            setIsSuperAdmin(snap.exists());
-          },
-          (err) => {
-            console.error('[Superadmin] Error leyendo superadmins/', u.uid, err.code, err.message);
-          }
-        );
+        setIsSuperAdmin(u.uid === SUPERADMIN_UID);
 
         unsubUser = onSnapshot(doc(db, 'users', u.uid), (snap) => {
           if (snap.exists()) {
@@ -77,7 +67,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => {
       unsubAuth();
       if (unsubUser) unsubUser();
-      if (unsubSuperAdmin) unsubSuperAdmin();
     };
   }, []);
 
