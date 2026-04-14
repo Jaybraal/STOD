@@ -34,9 +34,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (u) {
         // Verificar si es superadmin del sistema
-        unsubSuperAdmin = onSnapshot(doc(db, 'superadmins', u.uid), (snap) => {
-          setIsSuperAdmin(snap.exists());
-        });
+        unsubSuperAdmin = onSnapshot(
+          doc(db, 'superadmins', u.uid),
+          (snap) => {
+            console.log('[Superadmin] doc exists:', snap.exists(), '| uid:', u.uid);
+            setIsSuperAdmin(snap.exists());
+          },
+          (err) => {
+            console.error('[Superadmin] Error leyendo superadmins/', u.uid, err.code, err.message);
+          }
+        );
 
         unsubUser = onSnapshot(doc(db, 'users', u.uid), (snap) => {
           if (snap.exists()) {
