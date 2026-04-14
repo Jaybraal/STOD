@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Users, CalendarDays, Stethoscope, FileText, Settings, LogOut } from 'lucide-react';
+import { LayoutDashboard, Users, CalendarDays, Stethoscope, FileText, Settings, LogOut, ShieldAlert } from 'lucide-react';
 import { SyncStatusBar } from '../SyncStatusBar';
 import { useAuth } from '../../context/AuthContext';
 
@@ -12,7 +12,7 @@ const NAV_ITEMS = [
 ];
 
 export function Sidebar() {
-  const { logout } = useAuth();
+  const { logout, isSuperAdmin } = useAuth();
 
   return (
     <aside className="hidden lg:flex flex-col w-56 bg-white border-r border-slate-200 h-full fixed left-0 top-0 z-20">
@@ -48,6 +48,21 @@ export function Sidebar() {
       {/* Footer */}
       <div className="px-4 py-4 border-t border-slate-200 space-y-2">
         <SyncStatusBar />
+        {isSuperAdmin && (
+          <NavLink
+            to="/superadmin"
+            className={({ isActive }) =>
+              `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors w-full ${
+                isActive
+                  ? 'bg-violet-50 text-violet-700'
+                  : 'text-violet-600 hover:bg-violet-50 hover:text-violet-700'
+              }`
+            }
+          >
+            <ShieldAlert size={18} />
+            Superadmin
+          </NavLink>
+        )}
         <NavLink
           to="/configuracion"
           className={({ isActive }) =>

@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Users, CalendarDays, Stethoscope, Settings, LogOut } from 'lucide-react';
+import { LayoutDashboard, Users, CalendarDays, Stethoscope, Settings, LogOut, ShieldAlert } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
 const NAV_ITEMS = [
@@ -11,7 +11,7 @@ const NAV_ITEMS = [
 ];
 
 export function BottomNav() {
-  const { logout } = useAuth();
+  const { logout, isSuperAdmin } = useAuth();
 
   return (
     <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-20 bg-white border-t border-slate-200 safe-area-pb">
@@ -31,6 +31,19 @@ export function BottomNav() {
             <span>{label}</span>
           </NavLink>
         ))}
+        {isSuperAdmin && (
+          <NavLink
+            to="/superadmin"
+            className={({ isActive }) =>
+              `flex-1 flex flex-col items-center justify-center py-2 gap-0.5 text-xs transition-colors ${
+                isActive ? 'text-violet-600' : 'text-violet-400'
+              }`
+            }
+          >
+            <ShieldAlert size={22} />
+            <span>Admin</span>
+          </NavLink>
+        )}
         <button
           onClick={logout}
           className="flex-1 flex flex-col items-center justify-center py-2 gap-0.5 text-xs text-slate-500 hover:text-red-500 transition-colors"

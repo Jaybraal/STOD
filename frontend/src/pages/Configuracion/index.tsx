@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useConfig } from '../../hooks/useConfig';
 import { useAuth } from '../../context/AuthContext';
 import { generateJoinCode } from '../../db/queries/config';
-import { subscribeClinicUsers, approveMember, removeMember, type ClinicUser } from '../../db/queries/joinRequests';
+import { subscribeClinicUsers, approveMember, removeMember, promoteToAdmin, demoteFromAdmin, type ClinicUser } from '../../db/queries/joinRequests';
 import { doc, deleteDoc } from 'firebase/firestore';
 import { db } from '../../db/firebase';
 import { Header } from '../../components/layout/Header';
@@ -14,7 +14,7 @@ import type { CustomField, CustomFieldType, ClinicType } from '../../db/schemas'
 import { CLINIC_TYPE_OPTIONS, DEFAULT_TREATMENT_FIELDS } from '../../utils/constants';
 import {
   Save, Check, RefreshCw, Copy, Users, LogOut, UserCheck, UserX, UserMinus,
-  Plus, Trash2, ChevronDown, ChevronUp,
+  Plus, Trash2, ChevronDown, ChevronUp, ShieldCheck, ShieldOff,
 } from 'lucide-react';
 
 const FIELD_TYPE_OPTIONS: { value: CustomFieldType; label: string }[] = [
@@ -282,6 +282,15 @@ export function ConfiguracionPage() {
     if (!confirm(`¿Eliminar acceso de ${email}?`)) return;
     await removeMember(uid);
   };
+  const handleToggleAdmin = async (u: ClinicUser) => {
+    if (u.role === 'admin') {
+      if (!confirm(`¿Quitar rol de admin a ${u.email}?`)) return;
+      await demoteFromAdmin(u.uid);
+    } else {
+      if (!confirm(`¿Hacer admin a ${u.email}? Podrá aprobar miembros y gestionar la clínica.`)) return;
+      await promoteToAdmin(u.uid);
+    }
+  };
 
   if (loading) return <LoadingPage />;
 
@@ -509,19 +518,40 @@ export function ConfiguracionPage() {
                 {members.map((u) => (
                   <div key={u.uid} className="flex items-center gap-3 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3">
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-slate-800 truncate">{u.email}</p>
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-medium text-slate-800 truncate">{u.email}</p>
+                        {u.role === 'admin' && (
+                          <span className="flex items-center gap-1 text-xs bg-violet-100 text-violet-700 font-medium px-2 py-0.5 rounded-full flex-shrink-0">
+                            <ShieldCheck size={11} /> Admin
+                          </span>
+                        )}
+                      </div>
                       {u.joinedAt && (
                         <p className="text-xs text-slate-400">
                           Conectado el {new Date(u.joinedAt).toLocaleString('es', { dateStyle: 'medium' })}
                         </p>
                       )}
                     </div>
-                    <button
-                      onClick={() => handleRemove(u.uid, u.email)}
-                      className="flex items-center gap-1 text-xs font-medium text-slate-500 hover:text-red-600 hover:bg-red-50 px-3 py-1.5 rounded-lg transition-colors"
-                    >
-                      <UserMinus size={14} /> Eliminar
-                    </button>
+                    <div className="flex items-center gap-1.5 flex-shrink-0">
+                      <button
+                        onClick={() => handleToggleAdmin(u)}
+                        className={`flex items-center gap-1 text-xs font-medium px-3 py-1.5 rounded-lg transition-colors ${
+                          u.role === 'admin'
+                            ? 'text-violet-600 bg-violet-50 hover:bg-violet-100'
+                            : 'text-slate-500 hover:text-violet-600 hover:bg-violet-50'
+                        }`}
+                        title={u.role === 'admin' ? 'Quitar admin' : 'Hacer admin'}
+                      >
+                        {u.role === 'admin' ? <ShieldOff size={14} /> : <ShieldCheck size={14} />}
+                        {u.role === 'admin' ? 'Quitar admin' : 'Hacer admin'}
+                      </button>
+                      <button
+                        onClick={() => handleRemove(u.uid, u.email)}
+                        className="flex items-center gap-1 text-xs font-medium text-slate-500 hover:text-red-600 hover:bg-red-50 px-3 py-1.5 rounded-lg transition-colors"
+                      >
+                        <UserMinus size={14} /> Eliminar
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>

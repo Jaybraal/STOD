@@ -6,6 +6,7 @@ export interface ClinicUser {
   email: string;
   clinicId: string;
   status?: 'pending';
+  role?: 'admin';
   joinedAt?: string;
 }
 
@@ -31,4 +32,14 @@ export async function approveMember(uid: string): Promise<void> {
 // Rechazar o eliminar un usuario de la clínica
 export async function removeMember(uid: string): Promise<void> {
   await deleteDoc(doc(db, 'users', uid));
+}
+
+// Promover a admin dentro de la clínica
+export async function promoteToAdmin(uid: string): Promise<void> {
+  await updateDoc(doc(db, 'users', uid), { role: 'admin' });
+}
+
+// Quitar rol de admin
+export async function demoteFromAdmin(uid: string): Promise<void> {
+  await updateDoc(doc(db, 'users', uid), { role: deleteField() });
 }
