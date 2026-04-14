@@ -10,12 +10,16 @@ if (!admin.apps.length) {
   const privateKey  = process.env.FIREBASE_PRIVATE_KEY;
 
   if (projectId && clientEmail && privateKey) {
-    // Railway almacena \n como texto — los convertimos a saltos de línea reales
+    // Railway almacena \n como texto — trim + convertir a saltos de línea reales
+    const cleanKey = privateKey
+      .trim()
+      .replace(/\\n/g, '\n')
+      .replace(/\n{2,}/g, '\n'); // eliminar dobles newlines
     admin.initializeApp({
       credential: admin.credential.cert({
-        projectId,
-        clientEmail,
-        privateKey: privateKey.replace(/\\n/g, '\n'),
+        projectId: projectId.trim(),
+        clientEmail: clientEmail.trim(),
+        privateKey: cleanKey,
       }),
     });
   } else {
