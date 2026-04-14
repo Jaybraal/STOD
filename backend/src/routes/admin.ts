@@ -5,12 +5,19 @@ const SUPERADMIN_UID = 'RESKS8ugyVMK9iIpdjFOyFbA9XF3';
 
 // Inicializar Firebase Admin (solo una vez)
 if (!admin.apps.length) {
-  const b64 = process.env.FIREBASE_SERVICE_ACCOUNT_B64;
-  if (b64) {
-    // Decodificar Base64 → JSON (evita problemas de caracteres especiales en Railway)
-    const json = Buffer.from(b64, 'base64').toString('utf8');
-    const parsed = JSON.parse(json) as admin.ServiceAccount;
-    admin.initializeApp({ credential: admin.credential.cert(parsed) });
+  const projectId   = process.env.FIREBASE_PROJECT_ID;
+  const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
+  const privateKey  = process.env.FIREBASE_PRIVATE_KEY;
+
+  if (projectId && clientEmail && privateKey) {
+    // Railway almacena \n como texto — los convertimos a saltos de línea reales
+    admin.initializeApp({
+      credential: admin.credential.cert({
+        projectId,
+        clientEmail,
+        privateKey: privateKey.replace(/\\n/g, '\n'),
+      }),
+    });
   } else {
     admin.initializeApp({ credential: admin.credential.applicationDefault() });
   }
