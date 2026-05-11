@@ -6,6 +6,7 @@ import path from 'path';
 import { existsSync } from 'fs';
 import syncRouter from './routes/sync';
 import adminRouter from './routes/admin';
+import chatRouter from './routes/chat';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -44,6 +45,7 @@ app.get('/api/health', (_req, res) => {
 // Rutas API
 app.use('/api/sync', syncLimiter, syncRouter);
 app.use('/api/admin', adminRouter);
+app.use('/api/chat', chatRouter);
 
 // Servir frontend en producción
 const frontendDist = path.join(__dirname, '../../frontend/dist');

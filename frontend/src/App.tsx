@@ -17,6 +17,7 @@ import { RecetaForm } from './pages/Recetas/RecetaForm';
 import { RecetaPrint } from './pages/Recetas/RecetaPrint';
 import { ConfiguracionPage } from './pages/Configuracion';
 import { SuperadminPage } from './pages/Superadmin';
+import ChatAssistant from './components/ChatAssistant';
 
 function Spinner() {
   return (
@@ -133,6 +134,7 @@ export default function App() {
           </Routes>
         </SyncProvider>
       </AuthProvider>
+      <ChatAssistant />
     </BrowserRouter>
   );
 }
