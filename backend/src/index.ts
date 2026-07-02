@@ -7,6 +7,8 @@ import { existsSync } from 'fs';
 import syncRouter from './routes/sync';
 import adminRouter from './routes/admin';
 import chatRouter from './routes/chat';
+import { ensureIndexes } from './services/indexing';
+import PouchDB from 'pouchdb';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -56,6 +58,17 @@ if (existsSync(frontendDist)) {
   });
 }
 
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
   console.log(`[STOD Backend] Servidor corriendo en http://localhost:${PORT}`);
+
+  // Inicializar índices de base de datos (opcional - solo si COUCHDB_URL está configurado)
+  if (process.env.COUCHDB_URL) {
+    try {
+      const localDb = new PouchDB(`${process.env.COUCHDB_URL}/stod_local`, { skip_setup: true });
+      await ensureIndexes(localDb);
+      console.log('[STOD] Índices de base de datos inicializados ✓');
+    } catch (err) {
+      console.warn('[STOD] Advertencia: No se pudieron inicializar índices:', err instanceof Error ? err.message : err);
+    }
+  }
 });

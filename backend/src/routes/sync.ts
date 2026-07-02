@@ -7,6 +7,7 @@ import {
   getCodeRecord,
   databaseExists,
 } from '../services/couchdb';
+import * as cacheService from '../services/cacheService';
 
 const router = Router();
 
@@ -53,6 +54,9 @@ router.post('/generate', async (_req: Request, res: Response) => {
     await setDatabaseSecurity(dbName, username);
     await saveCodeRecord({ code, dbName, syncUrl, username, password, createdAt: new Date().toISOString() });
 
+    // Cachear el nuevo código inmediatamente
+    cacheService.set(`code_${code}`, { code, dbName, syncUrl, username, password }, 10 * 60 * 1000);
+
     res.json({ code, syncUrl, username, password });
   } catch (err) {
     console.error('[sync/generate]', err);
@@ -70,11 +74,24 @@ router.post('/connect', async (req: Request, res: Response) => {
   }
 
   try {
-    const record = await getCodeRecord(code.toUpperCase().trim());
+    const codeKey = code.toUpperCase().trim();
+
+    // Verificar cache primero (TTL 10 min)
+    let record = cacheService.get<any>(`code_${codeKey}`);
+
+    if (!record) {
+      record = await getCodeRecord(codeKey);
+      if (record) {
+        cacheService.set(`code_${codeKey}`, record, 10 * 60 * 1000);
+      }
+    }
+
     if (!record) {
       res.status(404).json({ error: 'Código no encontrado o expirado' });
       return;
     }
+
+    res.setHeader('Cache-Control', 'public, max-age=60, stale-while-revalidate=30');
     res.json({
       code: record.code,
       syncUrl: record.syncUrl,
