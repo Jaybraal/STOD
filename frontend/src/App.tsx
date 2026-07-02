@@ -5,6 +5,7 @@ import { SyncProvider } from './context/SyncContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { AuthPage } from './pages/Auth';
 import Dashboard from './pages/Dashboard';
+import { CheckoutPage } from './pages/Checkout';
 import { PacientesList } from './pages/Pacientes';
 import { PacienteDetalle } from './pages/Pacientes/PacienteDetalle';
 import { PacienteForm } from './pages/Pacientes/PacienteForm';
@@ -81,6 +82,16 @@ export default function App() {
           <Routes>
             {/* Login - redirige al dashboard si ya hay sesión */}
             <Route path="/login" element={<PublicRoute><AuthPage /></PublicRoute>} />
+
+            {/* Checkout - after payment, sin shell */}
+            <Route
+              path="/checkout"
+              element={
+                <ProtectedRoute>
+                  <CheckoutPage />
+                </ProtectedRoute>
+              }
+            />
 
             {/* Panel superadmin - sin shell de clínica */}
             <Route

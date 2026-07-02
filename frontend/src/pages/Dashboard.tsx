@@ -8,6 +8,7 @@ import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { DashboardSkeleton } from '../components/LoadingSkeleton';
+import { SubscriptionGate } from '../components/SubscriptionGate';
 import { todayStr, formatDate } from '../utils/dateUtils';
 import {
   APPOINTMENT_STATUS_COLORS,
@@ -30,7 +31,7 @@ export default function Dashboard() {
   const todayDone = appointments.filter((a) => a.status === 'completada');
 
   return (
-    <div>
+    <SubscriptionGate requiredFor="read" showTrialTimer>
       <Header
         title={config?.clinicName || 'STOD'}
         actions={
@@ -166,6 +167,6 @@ export default function Dashboard() {
           </Card>
         )}
       </div>
-    </div>
+    </SubscriptionGate>
   );
 }

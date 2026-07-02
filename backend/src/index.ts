@@ -4,11 +4,30 @@ import cors from 'cors';
 import rateLimit from 'express-rate-limit';
 import path from 'path';
 import { existsSync } from 'fs';
+import { initializeApp, cert } from 'firebase-admin/app';
 import syncRouter from './routes/sync';
 import adminRouter from './routes/admin';
 import chatRouter from './routes/chat';
+import authRouter from './routes/auth';
+import webhookRouter from './routes/webhook';
 import { ensureIndexes } from './services/indexing';
 import PouchDB from 'pouchdb';
+
+// Inicializar Firebase Admin
+if (process.env.FIREBASE_PRIVATE_KEY) {
+  try {
+    initializeApp({
+      credential: cert({
+        projectId: process.env.FIREBASE_PROJECT_ID,
+        clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+        privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
+      }),
+    });
+    console.log('[STOD] Firebase Admin initialized ✓');
+  } catch (err) {
+    console.warn('[STOD] Firebase Admin already initialized or error:', err instanceof Error ? err.message : err);
+  }
+}
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -48,6 +67,8 @@ app.get('/api/health', (_req, res) => {
 app.use('/api/sync', syncLimiter, syncRouter);
 app.use('/api/admin', adminRouter);
 app.use('/api/chat', chatRouter);
+app.use('/api/auth', authRouter);
+app.use('/api/webhooks', webhookRouter);
 
 // Servir frontend en producción
 const frontendDist = path.join(__dirname, '../../frontend/dist');

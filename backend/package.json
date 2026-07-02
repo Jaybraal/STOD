@@ -16,7 +16,8 @@
     "express": "^4.21.0",
     "express-rate-limit": "^7.4.0",
     "firebase-admin": "^13.8.0",
-    "pouchdb": "^9.0.0"
+    "pouchdb": "^9.0.0",
+    "stripe": "^22.3.0"
   },
   "devDependencies": {
     "@types/cors": "^2.8.17",
