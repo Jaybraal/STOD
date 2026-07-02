@@ -10,7 +10,7 @@ import { Header } from '../../components/layout/Header';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
 import { Card } from '../../components/ui/Card';
-import { LoadingPage } from '../../components/ui/Spinner';
+import { AppointmentListSkeleton } from '../../components/LoadingSkeleton';
 import type { Appointment, AppointmentStatus } from '../../db/schemas';
 import { formatDateFriendly } from '../../utils/dateUtils';
 import {
@@ -81,7 +81,7 @@ export function CitasPage() {
     };
   };
 
-  if (loading) return <LoadingPage />;
+  if (loading) return <AppointmentListSkeleton />;
 
   return (
     <div>

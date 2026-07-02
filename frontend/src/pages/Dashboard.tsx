@@ -7,7 +7,7 @@ import { Header } from '../components/layout/Header';
 import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
-import { LoadingPage } from '../components/ui/Spinner';
+import { DashboardSkeleton } from '../components/LoadingSkeleton';
 import { todayStr, formatDate } from '../utils/dateUtils';
 import {
   APPOINTMENT_STATUS_COLORS,
@@ -23,7 +23,7 @@ export default function Dashboard() {
   const { patients, loading: ptLoading } = usePatients();
   const { treatments, loading: txLoading } = useTreatments();
 
-  if (apptLoading || ptLoading || txLoading) return <LoadingPage />;
+  if (apptLoading || ptLoading || txLoading) return <DashboardSkeleton />;
 
   const activeTreatments = treatments.filter((t) => t.status === 'en_proceso');
   const todayPending = appointments.filter((a) => a.status === 'programada');

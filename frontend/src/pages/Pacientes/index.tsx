@@ -4,7 +4,7 @@ import { usePatients } from '../../hooks/usePatients';
 import { Header } from '../../components/layout/Header';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
-import { LoadingPage } from '../../components/ui/Spinner';
+import { PatientListSkeleton } from '../../components/LoadingSkeleton';
 import type { Patient } from '../../db/schemas';
 import { formatAge, calcAge } from '../../utils/dateUtils';
 import { Plus, Search, User, Phone } from 'lucide-react';
@@ -136,7 +136,7 @@ export function PacientesList() {
 
         {/* Lista */}
         {loading ? (
-          <LoadingPage />
+          <PatientListSkeleton />
         ) : displayed.length === 0 ? (
           <Card className="p-10 text-center">
             <User size={40} className="mx-auto text-slate-300 mb-2" />
