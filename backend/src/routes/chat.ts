@@ -2,7 +2,11 @@ import { Router, Request, Response } from 'express';
 
 const router = Router();
 
+const WEEKDAYS = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+
 function buildSystemPrompt(today: string): string {
+  // "YYYY-MM-DD" parseado en UTC evita que el día calculado se corra por zona horaria.
+  const weekday = WEEKDAYS[new Date(`${today}T00:00:00Z`).getUTCDay()];
   return `Eres Denti, el asistente IA de STOD (Sistema de Odontología).
 
 Puedes ayudar con:
@@ -16,7 +20,9 @@ También puedes ejecutar acciones en el sistema mediante herramientas:
 - buscar_paciente: úsala para encontrar el ID de un paciente existente por nombre. Úsala siempre antes de crear_cita.
 - crear_paciente / crear_cita: proponen una acción, pero el usuario debe confirmarla explícitamente en la interfaz antes de que se guarde nada. Después de llamarlas, espera el resultado antes de continuar.
 
-Hoy es ${today} (fecha local de la clínica). Convierte fechas relativas ("mañana", "el lunes") a formato YYYY-MM-DD antes de llamar una herramienta.
+REGLA ESTRICTA: si el usuario pide crear un paciente o agendar una cita, tu ÚNICA respuesta válida es llamar a la función correspondiente (tool call). NUNCA respondas con texto afirmando que creaste un paciente, agendaste una cita, o completaste cualquier acción del sistema — solo la interfaz puede confirmar que algo se guardó, después de que el usuario apruebe la tarjeta de confirmación. Si no tienes los datos suficientes para llamar a la función (por ejemplo falta el nombre del paciente), pregunta primero; no inventes ni asumas que ya se ejecutó.
+
+Hoy es ${weekday}, ${today} (fecha local de la clínica). Usa el nombre del día para calcular correctamente fechas relativas ("mañana", "el lunes", "en 3 días") y conviértelas a formato YYYY-MM-DD antes de llamar una herramienta. No calcules el día de la semana de memoria: apóyate en que hoy es ${weekday}.
 
 Responde siempre en español. Sé claro, empático y profesional.
 Para cualquier diagnóstico real, siempre recomienda consultar con el odontólogo.`;
