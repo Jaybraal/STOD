@@ -16,7 +16,7 @@ import {
   TREATMENT_STATUS_COLORS,
   TREATMENT_STATUS_LABELS,
 } from '../../utils/constants';
-import { Edit, Trash2, Plus, CalendarDays, Stethoscope, FileText, Phone, Mail, MapPin, AlertCircle, Clock } from 'lucide-react';
+import { Edit, Trash2, Plus, CalendarDays, Stethoscope, FileText, Phone, Mail, MapPin, AlertCircle, Clock, ShieldCheck } from 'lucide-react';
 
 type Tab = 'citas' | 'tratamientos' | 'recetas';
 
@@ -95,6 +95,12 @@ export function PacienteDetalle() {
               <div className="flex items-center gap-2 text-slate-600 sm:col-span-2">
                 <MapPin size={14} className="text-slate-400 flex-shrink-0" />
                 <span>{patient.address}</span>
+              </div>
+            )}
+            {patient.hasInsurance && (
+              <div className="flex items-center gap-2 text-slate-600 sm:col-span-2">
+                <ShieldCheck size={14} className="text-emerald-500 flex-shrink-0" />
+                <span>{patient.insuranceProvider || 'Con seguro médico'}</span>
               </div>
             )}
           </div>

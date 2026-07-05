@@ -19,6 +19,8 @@ const EMPTY_FORM: FormData = {
   allergies: '',
   medicalHistory: '',
   notes: '',
+  hasInsurance: false,
+  insuranceProvider: '',
 };
 
 export function PacienteForm() {
@@ -43,6 +45,8 @@ export function PacienteForm() {
         allergies: patient.allergies,
         medicalHistory: patient.medicalHistory,
         notes: patient.notes,
+        hasInsurance: patient.hasInsurance ?? false,
+        insuranceProvider: patient.insuranceProvider ?? '',
       });
     }
   }, [patient]);
@@ -115,6 +119,35 @@ export function PacienteForm() {
             onChange={(e) => setForm({ ...form, address: e.target.value })}
             placeholder="Calle, Ciudad"
           />
+        </section>
+
+        <section className="space-y-4">
+          <h2 className="font-semibold text-slate-700 text-sm uppercase tracking-wide">Seguro médico</h2>
+
+          <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
+            <input
+              type="checkbox"
+              checked={form.hasInsurance}
+              onChange={(e) =>
+                setForm({
+                  ...form,
+                  hasInsurance: e.target.checked,
+                  insuranceProvider: e.target.checked ? form.insuranceProvider : '',
+                })
+              }
+              className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+            />
+            Tiene seguro médico
+          </label>
+
+          {form.hasInsurance && (
+            <Input
+              label="Aseguradora"
+              value={form.insuranceProvider}
+              onChange={(e) => setForm({ ...form, insuranceProvider: e.target.value })}
+              placeholder="ARS Humano, Senasa..."
+            />
+          )}
         </section>
 
         <section className="space-y-4">

@@ -16,6 +16,8 @@ export interface Patient extends BaseDoc {
   allergies: string;
   medicalHistory: string;
   notes: string;
+  hasInsurance: boolean;
+  insuranceProvider: string; // Nombre de la aseguradora, vacío si no aplica
 }
 
 // Estados posibles de una cita
