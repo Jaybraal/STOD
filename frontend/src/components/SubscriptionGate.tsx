@@ -21,6 +21,12 @@ export function SubscriptionGate({
     useSubscription();
   const [checkoutLoading, setCheckoutLoading] = useState(false);
 
+  // Desarrollo local (npm run dev): se salta el paywall. En el build de producción
+  // (Railway) import.meta.env.DEV es false y el gate funciona normal.
+  if (import.meta.env.DEV) {
+    return <>{children}</>;
+  }
+
   const hasAccess =
     requiredFor === 'read'
       ? isTrialActive || isPaid

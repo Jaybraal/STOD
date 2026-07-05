@@ -39,6 +39,12 @@ export async function requireSubscription(
     next: NextFunction
   ): Promise<void> => {
     try {
+      // Desarrollo local: se salta el paywall (nunca en producción, ver .env.example)
+      if (process.env.DISABLE_SUBSCRIPTION_GATE === 'true') {
+        next();
+        return;
+      }
+
       if (!req.uid) {
         res.status(401).json({ error: 'Not authenticated' });
         return;
