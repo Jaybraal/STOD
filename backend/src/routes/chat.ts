@@ -2,7 +2,8 @@ import { Router, Request, Response } from 'express';
 
 const router = Router();
 
-const SYSTEM_PROMPT = `Eres Denti, el asistente IA de STOD (Sistema de Odontología).
+function buildSystemPrompt(today: string): string {
+  return `Eres Denti, el asistente IA de STOD (Sistema de Odontología).
 
 Puedes ayudar con:
 - Responder preguntas sobre tratamientos dentales
@@ -11,10 +12,87 @@ Puedes ayudar con:
 - Dar consejos de higiene bucal
 - Ayudar al equipo clínico con terminología y protocolos
 
+También puedes ejecutar acciones en el sistema mediante herramientas:
+- buscar_paciente: úsala para encontrar el ID de un paciente existente por nombre. Úsala siempre antes de crear_cita.
+- crear_paciente / crear_cita: proponen una acción, pero el usuario debe confirmarla explícitamente en la interfaz antes de que se guarde nada. Después de llamarlas, espera el resultado antes de continuar.
+
+Hoy es ${today} (fecha local de la clínica). Convierte fechas relativas ("mañana", "el lunes") a formato YYYY-MM-DD antes de llamar una herramienta.
+
 Responde siempre en español. Sé claro, empático y profesional.
 Para cualquier diagnóstico real, siempre recomienda consultar con el odontólogo.`;
+}
 
-async function callGroq(messages: unknown[]) {
+const TOOLS = [
+  {
+    type: 'function',
+    function: {
+      name: 'buscar_paciente',
+      description:
+        'Busca pacientes existentes por nombre o parte del nombre. Úsala antes de crear_cita para obtener el patientId.',
+      parameters: {
+        type: 'object',
+        properties: {
+          nombre: { type: 'string', description: 'Nombre o parte del nombre a buscar' },
+        },
+        required: ['nombre'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'crear_paciente',
+      description:
+        'Propone crear un paciente nuevo. No se guarda hasta que el usuario confirme en la interfaz.',
+      parameters: {
+        type: 'object',
+        properties: {
+          name: { type: 'string' },
+          phone: { type: 'string' },
+          email: { type: 'string' },
+          dob: { type: 'string', description: 'Fecha de nacimiento YYYY-MM-DD' },
+          address: { type: 'string' },
+          allergies: { type: 'string' },
+          medicalHistory: { type: 'string' },
+          notes: { type: 'string' },
+        },
+        required: ['name'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'crear_cita',
+      description:
+        'Propone agendar una cita para un paciente EXISTENTE (usa buscar_paciente primero para obtener patientId). No se guarda hasta que el usuario confirme en la interfaz.',
+      parameters: {
+        type: 'object',
+        properties: {
+          patientId: { type: 'string' },
+          patientName: { type: 'string', description: 'Nombre del paciente, para mostrar en la confirmación' },
+          date: { type: 'string', description: 'YYYY-MM-DD' },
+          time: { type: 'string', description: 'HH:mm' },
+          duration: { type: 'number', description: 'Duración en minutos, ej. 30' },
+          reason: { type: 'string' },
+          notes: { type: 'string' },
+        },
+        required: ['patientId', 'patientName', 'date', 'time', 'reason'],
+      },
+    },
+  },
+];
+
+interface ToolCall {
+  id: string;
+  type: 'function';
+  function: { name: string; arguments: string };
+}
+
+async function callGroq(
+  messages: unknown[],
+  retrying = false
+): Promise<{ choices: { message: { content: string | null; tool_calls?: ToolCall[] } }[] }> {
   const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
     method: 'POST',
     headers: {
@@ -25,26 +103,43 @@ async function callGroq(messages: unknown[]) {
       model: 'llama-3.3-70b-versatile',
       messages,
       max_tokens: 800,
+      tools: TOOLS,
+      tool_choice: 'auto',
     }),
   });
 
   if (!res.ok) {
     const err = await res.text();
+    // El modelo a veces genera una llamada a función mal formada (tool_use_failed).
+    // Es transitorio: un solo reintento suele resolverlo sin exponer el error al usuario.
+    if (!retrying) {
+      let code: string | undefined;
+      try {
+        code = JSON.parse(err)?.error?.code;
+      } catch {
+        // respuesta no era JSON, se ignora y se reintenta igual solo si aplica el status
+      }
+      if (code === 'tool_use_failed') {
+        return callGroq(messages, true);
+      }
+    }
     throw new Error(`Groq ${res.status}: ${err}`);
   }
-  return res.json() as Promise<{ choices: { message: { content: string } }[] }>;
+  return res.json();
 }
 
 router.post('/', async (req: Request, res: Response) => {
   try {
-    const { messages } = req.body;
+    const { messages, today } = req.body;
     if (!Array.isArray(messages)) {
       return res.status(400).json({ error: 'messages requerido' });
     }
 
-    const full = [{ role: 'system', content: SYSTEM_PROMPT }, ...messages];
+    const todayStr = typeof today === 'string' && today ? today : new Date().toISOString().slice(0, 10);
+    const full = [{ role: 'system', content: buildSystemPrompt(todayStr) }, ...messages];
     const data = await callGroq(full);
-    res.json({ reply: data.choices[0]?.message?.content ?? '' });
+    const msg = data.choices[0]?.message;
+    res.json({ reply: msg?.content ?? '', toolCalls: msg?.tool_calls ?? null });
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : 'Error desconocido';
     console.error('[/api/chat]', msg);

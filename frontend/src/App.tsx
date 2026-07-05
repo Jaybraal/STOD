@@ -74,6 +74,12 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+function ChatAssistantGate() {
+  const { user, pendingApproval } = useAuth();
+  if (!user || pendingApproval) return null;
+  return <ChatAssistant />;
+}
+
 export default function App() {
   return (
     <BrowserRouter>
@@ -144,8 +150,8 @@ export default function App() {
             />
           </Routes>
         </SyncProvider>
+        <ChatAssistantGate />
       </AuthProvider>
-      <ChatAssistant />
     </BrowserRouter>
   );
 }
