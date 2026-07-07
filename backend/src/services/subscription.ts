@@ -1,7 +1,7 @@
 import { getFirestore } from 'firebase-admin/firestore';
 import { Subscription, TrialStatus, SubscriptionCheckResult } from '../types/subscription';
 
-const TRIAL_DURATION_MS = 30 * 60 * 1000; // 30 minutos
+const TRIAL_DURATION_MS = 14 * 24 * 60 * 60 * 1000; // 14 días
 
 export async function initializeUserSubscription(uid: string): Promise<Subscription> {
   try {

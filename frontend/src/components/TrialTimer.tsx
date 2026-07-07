@@ -6,28 +6,40 @@ interface TrialTimerProps {
   onExpired?: () => void;
 }
 
+// El backend reporta minutos enteros (trial de días) — se formatea como
+// d/h/m según la magnitud en vez de asumir que siempre quedan pocos minutos.
+function formatRemaining(totalMinutes: number): string {
+  if (totalMinutes <= 0) return 'Trial expired';
+
+  const days = Math.floor(totalMinutes / 1440);
+  const hours = Math.floor((totalMinutes % 1440) / 60);
+  const minutes = totalMinutes % 60;
+
+  if (days > 0) return `${days}d ${hours}h`;
+  if (hours > 0) return `${hours}h ${minutes}m`;
+  return `${minutes}m`;
+}
+
 export function TrialTimer({ minutesRemaining, onExpired }: TrialTimerProps) {
-  const [displayMinutes, setDisplayMinutes] = useState(minutesRemaining);
-  const [displaySeconds, setDisplaySeconds] = useState(0);
+  const [remaining, setRemaining] = useState(Math.floor(minutesRemaining));
 
   useEffect(() => {
-    setDisplayMinutes(Math.floor(minutesRemaining));
-    setDisplaySeconds(Math.round((minutesRemaining % 1) * 60));
+    setRemaining(Math.floor(minutesRemaining));
   }, [minutesRemaining]);
 
   useEffect(() => {
-    if (displayMinutes === 0 && displaySeconds === 0) {
+    if (remaining <= 0) {
       onExpired?.();
     }
-  }, [displayMinutes, displaySeconds, onExpired]);
+  }, [remaining, onExpired]);
 
-  const isPastExpiry = displayMinutes === 0 && displaySeconds === 0;
+  const isPastExpiry = remaining <= 0;
 
   return (
     <div className="inline-flex items-center gap-2 px-3 py-1 bg-amber-50 border border-amber-200 rounded-full">
       <Clock className="w-4 h-4 text-amber-600" />
       <span className={`text-sm font-medium ${isPastExpiry ? 'text-red-600' : 'text-amber-600'}`}>
-        {isPastExpiry ? 'Trial expired' : `${displayMinutes}m ${displaySeconds}s`}
+        {formatRemaining(remaining)}
       </span>
     </div>
   );
