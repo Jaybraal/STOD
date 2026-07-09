@@ -69,6 +69,40 @@ export interface Prescription extends BaseDoc {
   doctorNotes: string;
 }
 
+// Tipos de documento clínico
+export type DocumentType =
+  | 'receta'
+  | 'certificado'
+  | 'referimiento'
+  | 'orden_laboratorio'
+  | 'orden_imagenes';
+
+// Profesional al que se refiere un paciente
+export interface Referral {
+  name: string;
+  specialty?: string;
+}
+
+// Documento clínico unificado (reemplaza Prescription)
+export interface ClinicalDocument extends BaseDoc {
+  type: DocumentType;
+  patientId: string;
+  date: string;                 // YYYY-MM-DD
+  appointmentId?: string;       // compat con recetas migradas
+  doctorNotes?: string;         // común a todos
+
+  medications?: Medication[];   // receta
+
+  restDays?: number;            // certificado
+  reason?: string;              // certificado
+
+  referredTo?: Referral;        // referimiento
+  clinicalSummary?: string;     // referimiento
+
+  studies?: string[];           // orden_laboratorio / orden_imagenes
+  clinicalIndications?: string; // orden_imagenes
+}
+
 // Tipo de clínica
 export type ClinicType =
   | 'dental'
@@ -101,4 +135,8 @@ export interface ClinicConfig {
   joinCode?: string;              // Código de invitación para unir dispositivos
   clinicType?: ClinicType;        // Tipo de clínica seleccionado
   treatmentFields?: CustomField[]; // Campos personalizados del formulario de tratamiento
+  logoUrl?: string;
+  signatureUrl?: string;
+  stampUrl?: string;
+  licenseNumber?: string;   // exequátur / licencia — se muestra bajo la firma
 }
