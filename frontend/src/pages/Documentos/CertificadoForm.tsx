@@ -31,7 +31,7 @@ export function CertificadoForm() {
       setReason(d.reason || ''); setRestDays(d.restDays != null ? String(d.restDays) : '');
       setDoctorNotes(d.doctorNotes || ''); setLoading(false);
     });
-  }, [id, isEditing, getDocument]);
+  }, [id, isEditing]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

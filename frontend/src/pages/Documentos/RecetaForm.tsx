@@ -39,7 +39,7 @@ export function RecetaForm() {
       setDoctorNotes(d.doctorNotes || '');
       setLoading(false);
     });
-  }, [id, isEditing, getDocument]);
+  }, [id, isEditing]);
 
   const addMed = () => setMedications((m) => [...m, EMPTY_MED()]);
   const removeMed = (mid: string) => setMedications((m) => m.filter((x) => x.id !== mid));

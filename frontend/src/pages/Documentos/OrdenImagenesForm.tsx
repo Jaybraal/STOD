@@ -32,7 +32,7 @@ export function OrdenImagenesForm() {
       setClinicalIndications(d.clinicalIndications || '');
       setDoctorNotes(d.doctorNotes || ''); setLoading(false);
     });
-  }, [id, isEditing, getDocument]);
+  }, [id, isEditing]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

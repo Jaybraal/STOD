@@ -34,7 +34,7 @@ export function ReferimientoForm() {
       setReason(d.reason || ''); setClinicalSummary(d.clinicalSummary || '');
       setDoctorNotes(d.doctorNotes || ''); setLoading(false);
     });
-  }, [id, isEditing, getDocument]);
+  }, [id, isEditing]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
