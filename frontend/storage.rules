@@ -7,7 +7,8 @@ service firebase.storage {
         request.auth.uid == clinicId ||
         (
           firestore.exists(/databases/(default)/documents/users/$(request.auth.uid)) &&
-          firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.clinicId == clinicId
+          firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.clinicId == clinicId &&
+          firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.get('status', '') != 'pending'
         )
       );
     }
