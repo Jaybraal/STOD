@@ -3,7 +3,8 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { usePatient, usePatientMutations } from '../../hooks/usePatients';
 import { useAppointmentsForPatient } from '../../hooks/useAppointments';
 import { useTreatmentsForPatient } from '../../hooks/useTreatments';
-import { usePrescriptionsForPatient } from '../../hooks/usePrescriptions';
+import { useClinicalDocumentsForPatient } from '../../hooks/useClinicalDocuments';
+import { DOCUMENT_TYPE_META } from '../../utils/documentTypes';
 import { Header } from '../../components/layout/Header';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
@@ -18,7 +19,7 @@ import {
 } from '../../utils/constants';
 import { Edit, Trash2, Plus, CalendarDays, Stethoscope, FileText, Phone, Mail, MapPin, AlertCircle, Clock, ShieldCheck } from 'lucide-react';
 
-type Tab = 'citas' | 'tratamientos' | 'recetas';
+type Tab = 'citas' | 'tratamientos' | 'documentos';
 
 export function PacienteDetalle() {
   const navigate = useNavigate();
@@ -27,7 +28,7 @@ export function PacienteDetalle() {
   const { deletePatient } = usePatientMutations();
   const { appointments } = useAppointmentsForPatient(id);
   const { treatments } = useTreatmentsForPatient(id);
-  const { prescriptions } = usePrescriptionsForPatient(id);
+  const { documents } = useClinicalDocumentsForPatient(id);
   const [activeTab, setActiveTab] = useState<Tab>('citas');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
@@ -43,7 +44,7 @@ export function PacienteDetalle() {
   const TABS: { id: Tab; label: string; icon: typeof CalendarDays; count: number }[] = [
     { id: 'citas', label: 'Citas', icon: CalendarDays, count: appointments.length },
     { id: 'tratamientos', label: 'Tratamientos', icon: Stethoscope, count: treatments.length },
-    { id: 'recetas', label: 'Recetas', icon: FileText, count: prescriptions.length },
+    { id: 'documentos', label: 'Documentos', icon: FileText, count: documents.length },
   ];
 
   return (
@@ -214,28 +215,26 @@ export function PacienteDetalle() {
           </div>
         )}
 
-        {activeTab === 'recetas' && (
+        {activeTab === 'documentos' && (
           <div className="space-y-3">
             <div className="flex justify-end">
-              <Button size="sm" onClick={() => navigate(`/recetas/nueva?paciente=${id}`)}>
+              <Button size="sm" onClick={() => navigate(`/documentos/nuevo?paciente=${id}`)}>
                 <Plus size={14} />
-                Nueva receta
+                Nuevo documento
               </Button>
             </div>
-            {prescriptions.length === 0 ? (
-              <Card className="p-8 text-center text-slate-400 text-sm">Sin recetas registradas</Card>
+            {documents.length === 0 ? (
+              <Card className="p-8 text-center text-slate-400 text-sm">Sin documentos registrados</Card>
             ) : (
-              prescriptions.map((rx) => (
-                <Card key={rx._id} className="p-3" onClick={() => navigate(`/recetas/${rx._id}/editar`)}>
+              documents.map((d) => (
+                <Card key={d._id} className="p-3" onClick={() => navigate(`/documentos/${d._id}/editar`)}>
                   <div className="flex items-center gap-3">
                     <div className="flex-1">
-                      <p className="text-sm font-medium text-slate-900">{formatDate(rx.date)}</p>
-                      <p className="text-xs text-slate-500">
-                        {rx.medications.length} medicamento{rx.medications.length !== 1 ? 's' : ''}
-                      </p>
+                      <p className="text-sm font-medium text-slate-900">{formatDate(d.date)}</p>
+                      <p className="text-xs text-slate-500">{DOCUMENT_TYPE_META[d.type]?.label ?? 'Documento'}</p>
                     </div>
                     <button
-                      onClick={(e) => { e.stopPropagation(); navigate(`/recetas/${rx._id}/imprimir`); }}
+                      onClick={(e) => { e.stopPropagation(); navigate(`/documentos/${d._id}/imprimir`); }}
                       className="text-xs text-sky-600 hover:text-sky-800 font-medium px-2 py-1 rounded-md hover:bg-sky-50"
                     >
                       Imprimir
