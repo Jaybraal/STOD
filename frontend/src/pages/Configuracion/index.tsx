@@ -12,6 +12,8 @@ import { Card } from '../../components/ui/Card';
 import { LoadingPage } from '../../components/ui/Spinner';
 import type { CustomField, CustomFieldType, ClinicType } from '../../db/schemas';
 import { CLINIC_TYPE_OPTIONS, DEFAULT_TREATMENT_FIELDS } from '../../utils/constants';
+import { uploadBranding, type BrandingKind } from '../../db/queries/branding';
+import { validateBrandingImage } from '../../utils/branding';
 import {
   Save, Check, RefreshCw, Copy, Users, LogOut, UserCheck, UserX, UserMinus,
   Plus, Trash2, ChevronDown, ChevronUp, ShieldCheck, ShieldOff,
@@ -167,6 +169,11 @@ export function ConfiguracionPage() {
   const [treatmentFields, setTreatmentFields] = useState<CustomField[]>([]);
   const [fieldsSaved, setFieldsSaved] = useState(false);
 
+  const [licenseNumber, setLicenseNumber] = useState('');
+  const [uploadingKind, setUploadingKind] = useState<BrandingKind | null>(null);
+  const [brandingError, setBrandingError] = useState('');
+  const [brandingSaved, setBrandingSaved] = useState(false);
+
   useEffect(() => {
     if (config) {
       setForm({
@@ -177,6 +184,7 @@ export function ConfiguracionPage() {
       });
       setClinicType(config.clinicType || '');
       setTreatmentFields(config.treatmentFields || []);
+      setLicenseNumber(config.licenseNumber || '');
     }
   }, [config]);
 
@@ -194,6 +202,29 @@ export function ConfiguracionPage() {
     await updateConfig(form);
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
+  };
+
+  const handleBrandingUpload = async (kind: BrandingKind, file: File | undefined) => {
+    if (!file || !clinicId) return;
+    const err = validateBrandingImage(file);
+    if (err) { setBrandingError(err); return; }
+    setBrandingError('');
+    setUploadingKind(kind);
+    try {
+      const url = await uploadBranding(clinicId, kind, file);
+      const field = kind === 'logo' ? 'logoUrl' : kind === 'signature' ? 'signatureUrl' : 'stampUrl';
+      await updateConfig({ [field]: url });
+    } catch {
+      setBrandingError('Error al subir la imagen. Revisa tu conexión.');
+    } finally {
+      setUploadingKind(null);
+    }
+  };
+
+  const handleSaveLicense = async () => {
+    await updateConfig({ licenseNumber });
+    setBrandingSaved(true);
+    setTimeout(() => setBrandingSaved(false), 2000);
   };
 
   const handleClinicTypeChange = (newType: ClinicType) => {
@@ -333,6 +364,54 @@ export function ConfiguracionPage() {
               {saved ? <><Check size={16} /> Guardado</> : <><Save size={16} /> Guardar</>}
             </Button>
           </form>
+        </Card>
+
+        {/* Branding: logo, firma, sello */}
+        <Card className="p-5">
+          <h2 className="font-semibold text-slate-900 mb-1">Logo, firma y sello</h2>
+          <p className="text-sm text-slate-500 mb-4">
+            Aparecen en los documentos que generes (recetas, certificados, órdenes...).
+            Formatos PNG o JPG, máximo 2 MB.
+          </p>
+          {brandingError && <p className="text-sm text-red-500 mb-3">{brandingError}</p>}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {([
+              { kind: 'logo' as const, label: 'Logo', url: config?.logoUrl },
+              { kind: 'signature' as const, label: 'Firma', url: config?.signatureUrl },
+              { kind: 'stamp' as const, label: 'Sello', url: config?.stampUrl },
+            ]).map(({ kind, label, url }) => (
+              <div key={kind} className="border border-slate-200 rounded-xl p-3 flex flex-col items-center gap-2">
+                <span className="text-xs font-semibold text-slate-500 uppercase">{label}</span>
+                <div className="w-full h-24 rounded-lg bg-slate-50 flex items-center justify-center overflow-hidden">
+                  {url
+                    ? <img src={url} alt={label} className="max-h-full max-w-full object-contain" />
+                    : <span className="text-slate-300 text-xs">Sin {label.toLowerCase()}</span>}
+                </div>
+                <label className="text-xs text-sky-600 hover:text-sky-700 cursor-pointer font-medium">
+                  {uploadingKind === kind ? 'Subiendo...' : url ? 'Cambiar' : 'Subir'}
+                  <input
+                    type="file"
+                    accept="image/png,image/jpeg"
+                    className="hidden"
+                    disabled={uploadingKind !== null}
+                    onChange={(e) => handleBrandingUpload(kind, e.target.files?.[0])}
+                  />
+                </label>
+              </div>
+            ))}
+          </div>
+          <div className="mt-4 flex items-end gap-3">
+            <Input
+              label="Número de licencia / exequátur"
+              value={licenseNumber}
+              onChange={(e) => setLicenseNumber(e.target.value)}
+              placeholder="CMP 123456"
+              className="flex-1"
+            />
+            <Button type="button" onClick={handleSaveLicense}>
+              {brandingSaved ? <><Check size={16} /> Guardado</> : <><Save size={16} /> Guardar</>}
+            </Button>
+          </div>
         </Card>
 
         {/* Tipo de consultorio + campos personalizados (solo owner) */}
