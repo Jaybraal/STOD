@@ -29,6 +29,7 @@ export function DocumentoPrint() {
   const [doc, setDoc] = useState<ClinicalDocument | null>(null);
   const [patient, setPatient] = useState<Patient | null>(null);
   const [config, setConfig] = useState<ClinicConfig | null>(null);
+  const [notFound, setNotFound] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -36,8 +37,19 @@ export function DocumentoPrint() {
       setDoc(d);
       setConfig(cfg);
       setPatient(await getPatient(clinicId!, d.patientId));
-    });
+    }).catch(() => setNotFound(true));
   }, [id, clinicId]);
+
+  if (notFound) {
+    return (
+      <div className="flex flex-col items-center justify-center h-screen text-slate-400">
+        <p className="mb-4">Documento no encontrado.</p>
+        <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-sm text-slate-500 hover:text-slate-300">
+          <ArrowLeft size={16} /> Volver
+        </button>
+      </div>
+    );
+  }
 
   if (!doc || !patient) {
     return <div className="flex items-center justify-center h-screen text-slate-400">Cargando documento...</div>;
