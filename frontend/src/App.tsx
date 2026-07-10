@@ -13,9 +13,10 @@ import { CitasPage } from './pages/Citas';
 import { CitaForm } from './pages/Citas/CitaForm';
 import { TratamientosPage } from './pages/Tratamientos';
 import { TratamientoForm } from './pages/Tratamientos/TratamientoForm';
-import { RecetasPage } from './pages/Recetas';
-import { RecetaForm } from './pages/Recetas/RecetaForm';
-import { RecetaPrint } from './pages/Recetas/RecetaPrint';
+import { DocumentosPage } from './pages/Documentos';
+import { SelectorTipo } from './pages/Documentos/SelectorTipo';
+import { DocumentoFormNuevo, DocumentoFormEditar } from './pages/Documentos/DocumentoFormRouter';
+import { DocumentoPrint } from './pages/Documentos/DocumentoPrint';
 import { ConfiguracionPage } from './pages/Configuracion';
 import { SuperadminPage } from './pages/Superadmin';
 import ChatAssistant from './components/ChatAssistant';
@@ -113,10 +114,10 @@ export default function App() {
 
             {/* Vista de impresión - sin shell */}
             <Route
-              path="/recetas/:id/imprimir"
+              path="/documentos/:id/imprimir"
               element={
                 <ProtectedRoute>
-                  <RecetaPrint />
+                  <DocumentoPrint />
                 </ProtectedRoute>
               }
             />
@@ -139,9 +140,10 @@ export default function App() {
                       <Route path="/tratamientos" element={<TratamientosPage />} />
                       <Route path="/tratamientos/nuevo" element={<TratamientoForm />} />
                       <Route path="/tratamientos/:id/editar" element={<TratamientoForm />} />
-                      <Route path="/recetas" element={<RecetasPage />} />
-                      <Route path="/recetas/nueva" element={<RecetaForm />} />
-                      <Route path="/recetas/:id/editar" element={<RecetaForm />} />
+                      <Route path="/documentos" element={<DocumentosPage />} />
+                      <Route path="/documentos/nuevo" element={<SelectorTipo />} />
+                      <Route path="/documentos/nuevo/:tipo" element={<DocumentoFormNuevo />} />
+                      <Route path="/documentos/:id/editar" element={<DocumentoFormEditar />} />
                       <Route path="/configuracion" element={<ConfiguracionPage />} />
                     </Routes>
                   </AppShell>

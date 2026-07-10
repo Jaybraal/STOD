@@ -8,7 +8,7 @@ const NAV_ITEMS = [
   { to: '/pacientes', icon: Users, label: 'Pacientes' },
   { to: '/citas', icon: CalendarDays, label: 'Citas' },
   { to: '/tratamientos', icon: Stethoscope, label: 'Tratamientos' },
-  { to: '/recetas', icon: FileText, label: 'Recetas' },
+  { to: '/documentos', icon: FileText, label: 'Documentos' },
 ];
 
 export function Sidebar() {
