@@ -9,7 +9,8 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "typecheck:scripts": "tsc --noEmit --skipLibCheck --strict --target es2022 --module esnext --moduleResolution bundler scripts/run-migration.ts"
   },
   "dependencies": {
     "@headlessui/react": "^2.2.9",
