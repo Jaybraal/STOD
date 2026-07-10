@@ -1,0 +1,15 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /clinics/{clinicId}/branding/{kind} {
+      // Dueño de la clínica o miembro aprobado
+      allow read, write: if request.auth != null && (
+        request.auth.uid == clinicId ||
+        (
+          firestore.exists(/databases/(default)/documents/users/$(request.auth.uid)) &&
+          firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.clinicId == clinicId
+        )
+      );
+    }
+  }
+}
