@@ -96,6 +96,12 @@ export const CLINIC_TYPE_OPTIONS: { value: ClinicType; label: string; emoji: str
   { value: 'otro',         label: 'Otro tipo de consultorio',   emoji: '🏥' },
 ];
 
+// Etiqueta para mostrar el tipo de clínica en documentos/footers, con fallback genérico.
+export function clinicTypeLabel(clinicType: ClinicType | undefined): string {
+  const option = CLINIC_TYPE_OPTIONS.find((opt) => opt.value === clinicType);
+  return option ? `Sistema de Gestión — ${option.label}` : 'Sistema de Gestión Clínica';
+}
+
 // Campos de tratamiento por defecto según tipo de clínica
 export const DEFAULT_TREATMENT_FIELDS: Record<ClinicType, CustomField[]> = {
   dental: [

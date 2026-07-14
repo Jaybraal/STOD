@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from 'react'
 import { MessageCircle, X, Send, Bot, Check } from 'lucide-react'
 import { usePatients, usePatientMutations } from '../hooks/usePatients'
 import { useAppointmentMutations } from '../hooks/useAppointments'
+import { useConfig } from '../hooks/useConfig'
 
 interface ToolCall {
   id: string
@@ -47,6 +48,7 @@ export default function ChatAssistant() {
   const { patients } = usePatients()
   const { createPatient } = usePatientMutations()
   const { createAppointment } = useAppointmentMutations()
+  const { config } = useConfig()
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -58,7 +60,7 @@ export default function ChatAssistant() {
     const res = await fetch(`${API_BASE}/api/chat`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ messages: nextHistory, today }),
+      body: JSON.stringify({ messages: nextHistory, today, clinicType: config?.clinicType }),
     })
     return res.json() as Promise<{ reply: string; toolCalls: ToolCall[] | null; error?: string }>
   }

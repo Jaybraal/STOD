@@ -143,7 +143,7 @@ export function CitaForm() {
           label="Motivo / Procedimiento *"
           value={form.reason}
           onChange={(e) => setForm({ ...form, reason: e.target.value })}
-          placeholder="Limpieza dental, extracción..."
+          placeholder="Consulta de seguimiento, primera visita..."
           error={errors.reason}
         />
 

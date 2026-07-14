@@ -5,6 +5,7 @@ import { getClinicalDocument } from '../../db/queries/clinicalDocuments';
 import { getPatient } from '../../db/queries/patients';
 import { getConfig } from '../../db/queries/config';
 import type { ClinicalDocument, Patient, ClinicConfig } from '../../db/schemas';
+import { clinicTypeLabel } from '../../utils/constants';
 import { PrintHeader } from './print/PrintHeader';
 import { PrintSignature } from './print/PrintSignature';
 import { RecetaPrint } from './print/RecetaPrint';
@@ -77,7 +78,7 @@ export function DocumentoPrint() {
         <Body doc={doc} patient={patient} config={config} />
         <PrintSignature config={config} />
         <p style={{ marginTop: '20px', fontSize: '10px', color: '#cbd5e1', textAlign: 'center' }}>
-          Este documento fue generado por STOD — Sistema de Odontología
+          Este documento fue generado por STOD — {clinicTypeLabel(config?.clinicType)}
         </p>
       </div>
 

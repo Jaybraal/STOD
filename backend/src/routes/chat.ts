@@ -4,17 +4,41 @@ const router = Router();
 
 const WEEKDAYS = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
 
-function buildSystemPrompt(today: string): string {
+// Mismos valores que ClinicType en frontend/src/db/schemas.ts (paquetes separados, sin import compartido).
+const CLINIC_TYPE_LABELS: Record<string, string> = {
+  dental: 'Sistema de Odontología',
+  medicina: 'Sistema de Gestión Médica',
+  psicologia: 'Sistema de Gestión de Psicología',
+  fisioterapia: 'Sistema de Gestión de Fisioterapia',
+  nutricion: 'Sistema de Gestión de Nutrición',
+  veterinaria: 'Sistema de Gestión Veterinaria',
+};
+
+export function buildSystemPrompt(today: string, clinicType?: string): string {
   // "YYYY-MM-DD" parseado en UTC evita que el día calculado se corra por zona horaria.
   const weekday = WEEKDAYS[new Date(`${today}T00:00:00Z`).getUTCDay()];
-  return `Eres Denti, el asistente IA de STOD (Sistema de Odontología).
+  const systemLabel = (clinicType && CLINIC_TYPE_LABELS[clinicType]) || 'Sistema de Gestión Clínica';
+  const isDental = clinicType === 'dental';
 
-Puedes ayudar con:
-- Responder preguntas sobre tratamientos dentales
+  const capabilities = isDental
+    ? `- Responder preguntas sobre tratamientos dentales
 - Orientar sobre síntomas y cuándo buscar atención urgente
 - Explicar procedimientos odontológicos en términos simples
 - Dar consejos de higiene bucal
-- Ayudar al equipo clínico con terminología y protocolos
+- Ayudar al equipo clínico con terminología y protocolos`
+    : `- Responder preguntas sobre los tratamientos de la clínica
+- Orientar sobre síntomas y cuándo buscar atención urgente
+- Explicar procedimientos clínicos en términos simples
+- Ayudar al equipo clínico con terminología y protocolos`;
+
+  const disclaimer = isDental
+    ? 'Para cualquier diagnóstico real, siempre recomienda consultar con el odontólogo.'
+    : 'Para cualquier diagnóstico real, siempre recomienda consultar con el profesional a cargo.';
+
+  return `Eres Denti, el asistente IA de STOD (${systemLabel}).
+
+Puedes ayudar con:
+${capabilities}
 
 También puedes ejecutar acciones en el sistema mediante herramientas:
 - buscar_paciente: úsala para encontrar el ID de un paciente existente por nombre. Úsala siempre antes de crear_cita.
@@ -25,7 +49,7 @@ REGLA ESTRICTA: si el usuario pide crear un paciente o agendar una cita, tu ÚNI
 Hoy es ${weekday}, ${today} (fecha local de la clínica). Usa el nombre del día para calcular correctamente fechas relativas ("mañana", "el lunes", "en 3 días") y conviértelas a formato YYYY-MM-DD antes de llamar una herramienta. No calcules el día de la semana de memoria: apóyate en que hoy es ${weekday}.
 
 Responde siempre en español. Sé claro, empático y profesional.
-Para cualquier diagnóstico real, siempre recomienda consultar con el odontólogo.`;
+${disclaimer}`;
 }
 
 const TOOLS = [
@@ -136,13 +160,14 @@ async function callGroq(
 
 router.post('/', async (req: Request, res: Response) => {
   try {
-    const { messages, today } = req.body;
+    const { messages, today, clinicType } = req.body;
     if (!Array.isArray(messages)) {
       return res.status(400).json({ error: 'messages requerido' });
     }
 
     const todayStr = typeof today === 'string' && today ? today : new Date().toISOString().slice(0, 10);
-    const full = [{ role: 'system', content: buildSystemPrompt(todayStr) }, ...messages];
+    const clinicTypeStr = typeof clinicType === 'string' ? clinicType : undefined;
+    const full = [{ role: 'system', content: buildSystemPrompt(todayStr, clinicTypeStr) }, ...messages];
     const data = await callGroq(full);
     const msg = data.choices[0]?.message;
     res.json({ reply: msg?.content ?? '', toolCalls: msg?.tool_calls ?? null });
