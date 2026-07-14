@@ -6,8 +6,22 @@
 ## Contexto
 
 STOD hoy funciona para la clínica del propio usuario. Este spec define qué falta
-para venderlo a clínicas dentales ajenas en República Dominicana como SaaS
-self-serve, verificado contra el código real (no memoria/supuestos).
+para venderlo a clínicas ajenas en República Dominicana como SaaS self-serve,
+verificado contra el código real (no memoria/supuestos).
+
+**Corrección de posicionamiento (13/07/26):** una versión anterior de este spec
+enmarcó STOD como un producto dental. Es incorrecto — **STOD ya es un sistema
+general para cualquier tipo de clínica**, no solo dental. Verificado en el
+código: `ClinicType` (`frontend/src/db/schemas.ts:107-114`) ya incluye `dental`,
+`medicina`, `psicologia`, `fisioterapia`, `nutricion`, `veterinaria`, `otro`,
+cada uno con sus propios campos de tratamiento por defecto
+(`DEFAULT_TREATMENT_FIELDS`, `frontend/src/utils/constants.ts:99-132` — ej.
+psicología trae "N.º de sesión"/"Modalidad", veterinaria trae
+"Especie"/"Raza", fisioterapia trae "Zona corporal"). El modelo de datos del
+paciente y del tratamiento (`Patient`, `Treatment` con `customData`) es
+genérico por diseño. Dental es una especialidad más entre siete ya
+soportadas, no el producto entero — el mercado objetivo (TAM) es clínicas de
+cualquier especialidad, no solo dentistas.
 
 ## Lo que ya existe (verificado, no hay que reconstruirlo)
 
@@ -26,6 +40,37 @@ self-serve, verificado contra el código real (no memoria/supuestos).
 - Gate de acceso en frontend (`SubscriptionGate.tsx` +
   `useSubscription.ts`): lectura permitida en trial o pagado, escritura solo
   pagado, con `Paywall` y `TrialTimer` ya construidos.
+
+## Generalización de producto — gaps reales encontrados (13/07/26)
+
+El modelo de datos y configuración YA son multi-especialidad (ver arriba) —
+no hace falta rediseño de producto. Pero hay 3 puntos cosméticos/de branding
+con supuestos dentales incrustados que sí hay que corregir antes de vender a
+una clínica no-dental, porque se le mostrarían textualmente a ese cliente:
+
+1. **El asistente IA "Denti" está 100% hardcodeado a odontología**
+   (`backend/src/routes/chat.ts:7-29`, función `buildSystemPrompt`). El
+   prompt dice literalmente "Eres Denti, el asistente IA de STOD (Sistema de
+   Odontología)", "tratamientos dentales", "procedimientos odontológicos",
+   "higiene bucal", "consultar con el odontólogo" — y solo recibe `today`
+   como parámetro, sin el `clinicType` de la clínica. Fix: parametrizar
+   `buildSystemPrompt(today, clinicType)` y generar la sección de
+   capacidades/tono según el tipo de clínica (reusar
+   `DEFAULT_TREATMENT_FIELDS`/`CLINIC_TYPE_OPTIONS` ya existentes como fuente
+   de verdad de qué dice cada especialidad). Esfuerzo: pequeño, es una
+   función pura.
+2. **El pie de página de todo documento clínico impreso dice "Sistema de
+   Odontología" sin importar la especialidad** (`frontend/src/pages/Documentos/DocumentoPrint.tsx:80`).
+   Una constancia médica o un reporte de fisioterapia saldría con ese texto
+   dental abajo. Fix: usar un texto de marca neutral ("STOD — Sistema de
+   Gestión Clínica") o condicionar al `clinicType` de la clínica.
+3. **Placeholder de ejemplo en el formulario de citas** (`frontend/src/pages/Citas/CitaForm.tsx:146`,
+   "Limpieza dental, extracción...") — cosmético, trivial de generalizar o
+   hacer dinámico por `clinicType`.
+
+Ninguno de los tres es un bloqueador de arquitectura — son ajustes de texto/prompt,
+no de modelo de datos. Se pueden resolver en una sola tarea corta antes del
+lanzamiento a clínicas no-dentales.
 
 ## Flujo de activación de suscripción (sección prioritaria)
 
@@ -107,29 +152,61 @@ suscripción o un servicio dentro de la app, firma/envía/resguarda vía el
 proveedor, guarda la referencia del comprobante en Firestore junto al
 registro de cobro correspondiente.
 
+## Mercado y competencia (corregido — clínicas en general, no solo dental)
+
+Con el TAM correcto (cualquier especialidad), el panorama de competencia se
+amplía más allá de los jugadores dentales ya identificados (Dentidesk,
+Dentalink, Doctocliq — Doctocliq de hecho ya se anuncia como "software dental
+y médico", o sea multi-especialidad igual que STOD):
+
+- **DriCloud** — multi-especialidad, "desde un solo profesional hasta una
+  gran clínica", incluye facturación electrónica y telemedicina.
+- **Medesk** — apunta a clínicas medianas multi-especialidad (4-20
+  profesionales), planes escalables.
+- **OpenEMR-LatAm** — historia clínica electrónica open-source con soporte
+  regional, **disponible específicamente para República Dominicana** —
+  competidor directo a vigilar (barrera de precio baja al ser open-source).
+- **AgendaPro** — uno de los favoritos en LatAm para clínicas/consultorios en
+  general, fuerte en agenda/facilidad de uso.
+- Referencia internacional por especialidad (no LatAm, pero marca el techo de
+  precio): SimplePractice (EEUU) domina terapia/psicología a $49-99/mes por
+  profesional con flujos específicos de salud mental.
+
+Ningún jugador — dental o general — domina el mercado dominicano
+específicamente. Sigue siendo terreno abierto localmente.
+
 ## Planes de precio (2-3 tiers)
 
-Basado en el rango de mercado investigado (Doctocliq desde $19/mes,
-Dentalink $29-400+/mes según tamaño, Dentidesk sin precio público):
+Basado en el rango de mercado investigado, ahora con marco de referencia
+general (Doctocliq desde $19/mes, DriCloud/Medesk/AgendaPro sin precio
+público consistente, Dentalink $29-400+/mes según tamaño como techo de
+referencia regional):
 
 | Plan | Precio sugerido | Para quién | Incluye |
 |---|---|---|---|
-| Básico | $25/mes | 1 dentista, sin personal adicional | Ficha de paciente, documentos profesionales, agenda |
-| Clínica | $55/mes | 1-3 dentistas + personal de apoyo | Todo lo anterior + invitación de personal por rol + Denti (IA) |
+| Básico | $25/mes | 1 profesional, sin personal adicional | Ficha de paciente (cualquier especialidad), documentos profesionales, agenda |
+| Clínica | $55/mes | 1-3 profesionales + personal de apoyo | Todo lo anterior + invitación de personal por rol + Denti (IA, generalizada por especialidad) |
 | Clínica+ | $95/mes | Clínicas con 4+ profesionales | Todo lo anterior + soporte prioritario + branding avanzado |
 
-Justificación: entra por debajo de Dentalink en el segmento de entrada
-(compite en precio), por encima de Doctocliq (STOD ya trae IA y offline-first
-que Doctocliq no necesariamente iguala) — posiciona a STOD como la opción
-intermedia con mejor relación precio/capacidad para clínicas pequeñas-medianas
-dominicanas, el segmento donde no hay jugador local dominante.
+Justificación: entra por debajo de Dentalink/Medesk en el segmento de entrada
+(compite en precio), por encima de Doctocliq (STOD ya trae IA y
+offline-first) — posiciona a STOD como la opción intermedia con mejor
+relación precio/capacidad para clínicas pequeñas-medianas dominicanas de
+**cualquier especialidad**, el segmento donde no hay jugador local
+dominante. El mensaje de venta ya no es "software para dentistas" sino
+"software de gestión clínica que se adapta a tu especialidad" — la
+selección de `clinicType` en el onboarding es el gancho de ese mensaje.
 
 ## Landing / pricing pública (mínimo viable)
 
 Una sola página estática (puede vivir fuera del app shell actual, ej. Next.js
 simple o incluso HTML estático servido por el mismo backend): propuesta de
-valor en 2-3 líneas, tabla de los 3 planes, botón "Empezar prueba gratis de
-14 días" que lleva al registro existente. No hace falta blog ni SEO
+valor en 2-3 líneas **que mencione explícitamente que se adapta a la
+especialidad** (no "para dentistas"), selector visual de los 7 tipos de
+clínica ya soportados (mismo set de `CLINIC_TYPE_OPTIONS`, con sus emojis,
+como prueba social de que no es una herramienta genérica sin pensar —
+reafirma justo lo contrario), tabla de los 3 planes, botón "Empezar prueba
+gratis de 14 días" que lleva al registro existente. No hace falta blog ni SEO
 elaborado para el primer cliente — solo un lugar al que se pueda enviar un
 link.
 
@@ -138,13 +215,20 @@ link.
 1. Deploy a producción (bloqueador técnico #1).
 2. Arreglar el bug de suscripción por-clínica-no-por-usuario (bloqueador de
    producto — sin esto, cualquier clínica con personal se rompe).
-3. Landing mínima con los 3 planes.
-4. Integración e-CF vía Alanube/Alegra (puede lanzarse sin esto para el
+3. Resolver los 3 gaps de generalización (sección arriba) — Denti, pie de
+   documento, placeholder — antes de mostrarle el producto a una clínica
+   no-dental.
+4. Landing mínima con los 3 planes y el mensaje de "cualquier especialidad".
+5. Integración e-CF vía Alanube/Alegra (puede lanzarse sin esto para el
    piloto informal, pero es requisito antes de vender a una clínica que
    exija comprobante fiscal real — probablemente la mayoría).
-5. Outreach directo: 5-10 clínicas dentales pequeñas/medianas conocidas o
-   referidas (no depender de tráfico orgánico para el primer cliente) — ofrecer
-   el trial de 14 días ya existente como entrada sin fricción.
+6. Outreach directo: 5-10 clínicas pequeñas/medianas conocidas o referidas —
+   **diversifica el primer lote entre especialidades** (ej. 2 dentales, 2
+   médicas/psicología, 1 fisioterapia o veterinaria) en vez de solo dentistas,
+   para validar de verdad el posicionamiento general y encontrar temprano
+   cualquier gap de generalización que no se haya visto en el código. No
+   depender de tráfico orgánico para el primer cliente — ofrecer el trial de
+   14 días ya existente como entrada sin fricción.
 
 ## Fuera de alcance de este spec
 
