@@ -10,6 +10,11 @@ import { getClinicIdByCode } from '../../db/queries/config';
 
 type Mode = 'login' | 'register' | 'join';
 
+function getInitialMode(): Mode {
+  const params = new URLSearchParams(window.location.search);
+  return params.get('mode') === 'register' ? 'register' : 'login';
+}
+
 function getErrorMessage(code: string): string {
   switch (code) {
     case 'auth/invalid-email': return 'Email inválido';
@@ -25,7 +30,7 @@ function getErrorMessage(code: string): string {
 }
 
 export function AuthPage() {
-  const [mode, setMode] = useState<Mode>('login');
+  const [mode, setMode] = useState<Mode>(getInitialMode);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [code, setCode] = useState('');

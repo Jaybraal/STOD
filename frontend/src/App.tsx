@@ -4,6 +4,7 @@ import { AppShell } from './components/layout/AppShell';
 import { SyncProvider } from './context/SyncContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { AuthPage } from './pages/Auth';
+import { Landing } from './pages/Landing';
 import Dashboard from './pages/Dashboard';
 import { CheckoutPage } from './pages/Checkout';
 import { PacientesList } from './pages/Pacientes';
@@ -87,6 +88,9 @@ export default function App() {
       <AuthProvider>
         <SyncProvider>
           <Routes>
+            {/* Landing pública - precios, sin login */}
+            <Route path="/precios" element={<Landing />} />
+
             {/* Login - redirige al dashboard si ya hay sesión */}
             <Route path="/login" element={<PublicRoute><AuthPage /></PublicRoute>} />
 
