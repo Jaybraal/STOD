@@ -1,21 +1,22 @@
 import { AlertCircle, Check } from 'lucide-react';
+import { PLANS, type PlanId } from '../constants/plans';
 
 interface PaywallProps {
   title?: string;
   description?: string;
-  onUpgrade: () => void;
+  onUpgrade: (planId: PlanId) => void;
   loading?: boolean;
 }
 
 export function Paywall({
-  title = 'Upgrade Required',
-  description = 'Subscribe to STOD Premium to access this feature',
+  title = 'Elige tu plan',
+  description = 'Suscríbete a STOD para desbloquear esta función',
   onUpgrade,
   loading = false,
 }: PaywallProps) {
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 p-8">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-lg shadow-xl max-w-3xl w-full p-8">
         <div className="flex items-center justify-center w-12 h-12 bg-blue-100 rounded-full mb-4 mx-auto">
           <AlertCircle className="w-6 h-6 text-blue-600" />
         </div>
@@ -23,42 +24,39 @@ export function Paywall({
         <h2 className="text-2xl font-bold text-center mb-2">{title}</h2>
         <p className="text-gray-600 text-center mb-6">{description}</p>
 
-        <div className="bg-blue-50 rounded-lg p-4 mb-6 space-y-2">
-          <div className="flex items-start gap-2">
-            <Check className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-            <div>
-              <p className="font-semibold text-gray-900">Create & manage patients</p>
-              <p className="text-sm text-gray-600">Unlimited patient records</p>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {PLANS.map((plan) => (
+            <div
+              key={plan.id}
+              className="border border-gray-200 rounded-lg p-5 flex flex-col"
+            >
+              <h3 className="text-lg font-bold text-gray-900">{plan.name}</h3>
+              <p className="text-2xl font-bold text-gray-900 mt-1">{plan.priceLabel}</p>
+              <p className="text-sm text-gray-500 mb-4">{plan.audience}</p>
+
+              <ul className="space-y-2 mb-6 flex-1">
+                {plan.features.map((feature) => (
+                  <li key={feature} className="flex items-start gap-2 text-sm">
+                    <Check className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                    <span className="text-gray-700">{feature}</span>
+                  </li>
+                ))}
+              </ul>
+
+              <button
+                onClick={() => onUpgrade(plan.id)}
+                disabled={loading}
+                className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-semibold py-2.5 rounded-lg transition"
+              >
+                {loading ? 'Procesando...' : 'Elegir'}
+              </button>
             </div>
-          </div>
-          <div className="flex items-start gap-2">
-            <Check className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-            <div>
-              <p className="font-semibold text-gray-900">Schedule appointments</p>
-              <p className="text-sm text-gray-600">Manage your calendar</p>
-            </div>
-          </div>
-          <div className="flex items-start gap-2">
-            <Check className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-            <div>
-              <p className="font-semibold text-gray-900">Full access</p>
-              <p className="text-sm text-gray-600">30-day money-back guarantee</p>
-            </div>
-          </div>
+          ))}
         </div>
 
-        <div className="bg-gray-50 rounded-lg p-4 mb-6 text-center">
-          <p className="text-3xl font-bold text-gray-900">$150</p>
-          <p className="text-sm text-gray-600">per month, cancel anytime</p>
-        </div>
-
-        <button
-          onClick={onUpgrade}
-          disabled={loading}
-          className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-semibold py-3 rounded-lg transition"
-        >
-          {loading ? 'Processing...' : 'Upgrade to Premium'}
-        </button>
+        <p className="text-center text-xs text-gray-500 mt-6">
+          Prueba gratis de 14 días, cancela cuando quieras.
+        </p>
       </div>
     </div>
   );

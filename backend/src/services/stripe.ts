@@ -1,7 +1,36 @@
 import Stripe from 'stripe';
 import { getFirestore } from 'firebase-admin/firestore';
+import { PlanId } from '../types/subscription';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '');
+
+const PLAN_PRICE_ENV_VARS: Record<PlanId, string> = {
+  basico: 'STRIPE_PRICE_BASICO',
+  clinica: 'STRIPE_PRICE_CLINICA',
+  clinica_plus: 'STRIPE_PRICE_CLINICA_PLUS',
+};
+
+export function isValidPlanId(value: unknown): value is PlanId {
+  return value === 'basico' || value === 'clinica' || value === 'clinica_plus';
+}
+
+// Traduce un planId elegido por el cliente al Price ID real de Stripe,
+// vía variable de entorno — nunca confía en un priceId que venga directo
+// del cliente.
+export function resolvePlanPriceId(planId: unknown): string {
+  if (!isValidPlanId(planId)) {
+    throw new Error(`planId inválido: ${String(planId)}`);
+  }
+
+  const envVar = PLAN_PRICE_ENV_VARS[planId];
+  const priceId = process.env[envVar];
+
+  if (!priceId) {
+    throw new Error(`Falta configurar la variable de entorno ${envVar}`);
+  }
+
+  return priceId;
+}
 
 export async function createOrGetStripeCustomer(uid: string, email: string) {
   try {
@@ -32,9 +61,11 @@ export async function createCheckoutSession(
   uid: string,
   email: string,
   successUrl: string,
-  cancelUrl: string
+  cancelUrl: string,
+  planId: PlanId
 ) {
   try {
+    const priceId = resolvePlanPriceId(planId);
     const customerId = await createOrGetStripeCustomer(uid, email);
 
     const session = await stripe.checkout.sessions.create({
@@ -43,13 +74,13 @@ export async function createCheckoutSession(
       mode: 'subscription',
       line_items: [
         {
-          price: process.env.STRIPE_PRODUCT_ID || '',
+          price: priceId,
           quantity: 1,
         },
       ],
       success_url: successUrl,
       cancel_url: cancelUrl,
-      metadata: { uid },
+      metadata: { uid, planId },
     });
 
     return session;
@@ -88,10 +119,12 @@ export async function handleSubscriptionCreated(stripeSubscription: Stripe.Subsc
 
     const subscriptionRef = db.collection('subscriptions').doc(uid);
     const data = stripeSubscription as any;
+    const planId = data.metadata?.planId;
     await subscriptionRef.set(
       {
         stripeSubscriptionId: stripeSubscription.id,
         status: stripeSubscription.status,
+        ...(isValidPlanId(planId) ? { planId } : {}),
         currentPeriodStart: (data.current_period_start as number) * 1000,
         currentPeriodEnd: (data.current_period_end as number) * 1000,
         updatedAt: Date.now(),

@@ -1,6 +1,9 @@
+export type PlanId = 'basico' | 'clinica' | 'clinica_plus';
+
 export interface Subscription {
   uid: string;
   status: 'trial' | 'active' | 'past_due' | 'canceled' | 'expired';
+  planId?: PlanId;
   stripeCustomerId?: string;
   stripeSubscriptionId?: string;
   trialStartedAt: number;

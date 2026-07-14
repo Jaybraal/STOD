@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
+import type { PlanId } from '../constants/plans';
 
 export interface TrialStatus {
   isTrialActive: boolean;
@@ -76,7 +77,7 @@ export function useSubscription() {
   }, [user, getIdToken]);
 
   const createCheckoutSession = useCallback(
-    async (successUrl: string, cancelUrl: string): Promise<CheckoutResult> => {
+    async (successUrl: string, cancelUrl: string, planId: PlanId): Promise<CheckoutResult> => {
       try {
         const token = await getIdToken();
         const response = await fetch('/api/auth/create-checkout-session', {
@@ -85,7 +86,7 @@ export function useSubscription() {
             'Content-Type': 'application/json',
             Authorization: `Bearer ${token}`,
           },
-          body: JSON.stringify({ successUrl, cancelUrl }),
+          body: JSON.stringify({ successUrl, cancelUrl, planId }),
         });
 
         if (!response.ok) {

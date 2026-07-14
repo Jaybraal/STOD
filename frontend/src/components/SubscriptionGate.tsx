@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import { useSubscription } from '../hooks/useSubscription';
 import { Paywall } from './Paywall';
 import { TrialTimer } from './TrialTimer';
+import type { PlanId } from '../constants/plans';
 
 interface SubscriptionGateProps {
   children: ReactNode;
@@ -32,12 +33,13 @@ export function SubscriptionGate({
       ? isTrialActive || isPaid
       : isPaid;
 
-  const handleUpgrade = async () => {
+  const handleUpgrade = async (planId: PlanId) => {
     try {
       setCheckoutLoading(true);
       const { url } = await createCheckoutSession(
         window.location.href,
-        window.location.href
+        window.location.href,
+        planId
       );
       if (url) {
         window.location.href = url;

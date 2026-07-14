@@ -3,6 +3,7 @@ import { verifyAuth, AuthRequest } from '../middleware/subscription';
 import {
   createCheckoutSession,
   createOrGetStripeCustomer,
+  isValidPlanId,
 } from '../services/stripe';
 import { initializeUserSubscription, getTrialStatus } from '../services/subscription';
 
@@ -48,10 +49,15 @@ router.post('/create-checkout-session', verifyAuth, async (req: AuthRequest, res
       return;
     }
 
-    const { successUrl, cancelUrl } = req.body;
+    const { successUrl, cancelUrl, planId } = req.body;
 
     if (!successUrl || !cancelUrl) {
       res.status(400).json({ error: 'Missing success/cancel URLs' });
+      return;
+    }
+
+    if (!isValidPlanId(planId)) {
+      res.status(400).json({ error: 'planId inválido o faltante' });
       return;
     }
 
@@ -59,7 +65,8 @@ router.post('/create-checkout-session', verifyAuth, async (req: AuthRequest, res
       req.uid,
       req.email,
       successUrl,
-      cancelUrl
+      cancelUrl,
+      planId
     );
 
     res.json({ sessionId: session.id, url: session.url });
