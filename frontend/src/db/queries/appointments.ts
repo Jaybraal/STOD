@@ -15,12 +15,11 @@ export async function getAppointmentsInRange(clinicId: string, startDate: string
   const q = query(
     collection(db, col(clinicId)),
     where('date', '>=', startDate),
-    where('date', '<=', endDate)
+    where('date', '<=', endDate),
+    where('deletedAt', '==', null)
   );
   const snap = await getDocs(q);
-  return snap.docs
-    .map(d => ({ _id: d.id, ...d.data() }) as Appointment)
-    .filter(a => a.deletedAt === null);
+  return snap.docs.map(d => ({ _id: d.id, ...d.data() }) as Appointment);
 }
 
 export async function createAppointment(
