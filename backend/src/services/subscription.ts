@@ -77,12 +77,29 @@ export async function getTrialStatus(uid: string): Promise<TrialStatus> {
   }
 }
 
+// Resuelve el uid del DUEÑO de la clínica para un usuario dado. Los dueños
+// no tienen doc en `users/` (solo el personal invitado lo tiene, con un
+// `clinicId` apuntando al uid del dueño) — mismo mapeo ya usado en
+// `routes/admin.ts` (`isOwner ? u.uid : fsData?.clinicId`).
+async function resolveClinicOwnerUid(uid: string): Promise<string> {
+  const db = getFirestore();
+  const userDoc = await db.collection('users').doc(uid).get();
+
+  if (!userDoc.exists) {
+    return uid;
+  }
+
+  const data = userDoc.data();
+  return (data?.clinicId as string | undefined) || uid;
+}
+
 export async function checkSubscriptionAccess(
   uid: string,
   action: 'read' | 'write'
 ): Promise<SubscriptionCheckResult> {
   try {
-    const subscription = await getSubscription(uid);
+    const ownerUid = await resolveClinicOwnerUid(uid);
+    const subscription = await getSubscription(ownerUid);
 
     if (!subscription) {
       return {
