@@ -48,31 +48,37 @@ async function requireSuperAdmin(req: Request, res: Response, next: () => void) 
 // GET /api/admin/users — listar todos los usuarios de Firebase Auth
 router.get('/users', requireSuperAdmin, async (_req: Request, res: Response) => {
   try {
-    const result = await admin.auth().listUsers(1000);
     const db = admin.firestore();
 
+    // Las 3 lecturas son independientes entre sí — en paralelo en vez de en serie.
+    const [result, usersSnap, clinicsSnap] = await Promise.all([
+      admin.auth().listUsers(1000),
+      db.collection('users').get(),
+      db.collection('clinics').get(),
+    ]);
+
     // Leer todos los docs de users (miembros) para enriquecer con clinicId y rol
-    const usersSnap = await db.collection('users').get();
     const firestoreMap = new Map<string, Record<string, unknown>>();
     usersSnap.forEach((d: admin.firestore.QueryDocumentSnapshot) => firestoreMap.set(d.id, d.data()));
 
-    // Leer todas las clínicas para saber el nombre del owner
-    const clinicsSnap = await db.collection('clinics').get();
+    // Leer la config de cada clínica en paralelo (antes era secuencial, un N+1 real)
     const clinicNames = new Map<string, string>();
-    for (const clinicDoc of clinicsSnap.docs) {
-      try {
-        const configDoc = await db
-          .collection('clinics')
-          .doc(clinicDoc.id)
-          .collection('config')
-          .doc('clinic')
-          .get();
-        if (configDoc.exists) {
-          const data = configDoc.data();
-          clinicNames.set(clinicDoc.id, (data?.clinicName as string) || '');
-        }
-      } catch { /* ignorar */ }
-    }
+    await Promise.all(
+      clinicsSnap.docs.map(async (clinicDoc) => {
+        try {
+          const configDoc = await db
+            .collection('clinics')
+            .doc(clinicDoc.id)
+            .collection('config')
+            .doc('clinic')
+            .get();
+          if (configDoc.exists) {
+            const data = configDoc.data();
+            clinicNames.set(clinicDoc.id, (data?.clinicName as string) || '');
+          }
+        } catch { /* ignorar */ }
+      })
+    );
 
     const users = result.users.map((u: admin.auth.UserRecord) => {
       const fsData = firestoreMap.get(u.uid);
