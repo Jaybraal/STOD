@@ -5,6 +5,7 @@ import { MessageCircle, X, Send, Bot, Check } from 'lucide-react'
 import { usePatients, usePatientMutations } from '../hooks/usePatients'
 import { useAppointmentMutations } from '../hooks/useAppointments'
 import { useConfig } from '../hooks/useConfig'
+import { useAuth } from '../context/AuthContext'
 
 interface ToolCall {
   id: string
@@ -49,17 +50,20 @@ export default function ChatAssistant() {
   const { createPatient } = usePatientMutations()
   const { createAppointment } = useAppointmentMutations()
   const { config } = useConfig()
+  const { user } = useAuth()
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [items, loading])
 
   async function callChat(nextHistory: ProtocolMessage[]) {
+    if (!user) return { reply: '', toolCalls: null, error: 'Inicia sesión para usar el asistente.' }
+    const token = await user.getIdToken()
     const now = new Date()
     const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
     const res = await fetch(`${API_BASE}/api/chat`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
       body: JSON.stringify({ messages: nextHistory, today, clinicType: config?.clinicType }),
     })
     return res.json() as Promise<{ reply: string; toolCalls: ToolCall[] | null; error?: string }>

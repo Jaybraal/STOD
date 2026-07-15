@@ -11,6 +11,7 @@ import chatRouter from './routes/chat';
 import authRouter from './routes/auth';
 import webhookRouter from './routes/webhook';
 import { ensureIndexes } from './services/indexing';
+import { verifyAuth, type AuthRequest } from './middleware/subscription';
 import PouchDB from 'pouchdb';
 
 // Inicializar Firebase Admin
@@ -35,7 +36,11 @@ const PORT = process.env.PORT || 3001;
 // Necesario para express-rate-limit detrás de proxies (Railway, Render, etc.)
 app.set('trust proxy', 1);
 
-// CORS
+// CORS — en producción FRONTEND_URL es obligatoria: sin ella el fallback '*'
+// dejaría el API abierto a cualquier origen.
+if (process.env.NODE_ENV === 'production' && !process.env.FRONTEND_URL) {
+  throw new Error('[STOD] FATAL: FRONTEND_URL debe estar definida en producción (CORS).');
+}
 app.use(cors({
   origin: process.env.FRONTEND_URL || '*',
   credentials: true,
@@ -63,10 +68,18 @@ app.get('/api/health', (_req, res) => {
   res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
+// Rate limiting por usuario para el asistente IA (protege la cuota de Groq)
+const chatLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hora
+  max: 30,
+  keyGenerator: (req) => (req as AuthRequest).uid ?? req.ip ?? 'anon',
+  message: { error: 'Límite de mensajes del asistente alcanzado. Intenta en una hora.' },
+});
+
 // Rutas API
 app.use('/api/sync', syncLimiter, syncRouter);
 app.use('/api/admin', adminRouter);
-app.use('/api/chat', chatRouter);
+app.use('/api/chat', verifyAuth, chatLimiter, chatRouter);
 app.use('/api/auth', authRouter);
 app.use('/api/webhooks', webhookRouter);
 
